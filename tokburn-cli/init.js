@@ -105,29 +105,85 @@ async function runInit() {
     console.log('');
   }
 
-  // ── Step 4: Claude Code integration ─────────────────────────────────────────
+  // ── Step 4: Claude Code status line ─────────────────────────────────────────
 
   if (hasClaudeCode) {
     console.log('  [4/4] Configure Claude Code status line?');
-    console.log('        Shows token usage below the input bar.');
     console.log('');
-    console.log('        1) Yes, set it up');
-    console.log('        2) No, skip');
+    console.log('        1) Recommended   model | ctx% | repo | limits | cost');
+    console.log('        2) Minimal       model | current rate limit');
+    console.log('        3) Full          everything including burn rate');
+    console.log('        4) Custom        pick your own modules');
+    console.log('        5) Skip');
     console.log('');
     const ccChoice = (await ask('        > ')).trim();
     console.log('');
 
-    if (ccChoice !== '2') {
-      // Copy status line script
-      const srcScript = path.join(__dirname, 'statusline.sh');
-      const destScript = path.join(claudeDir, 'tokburn-statusline.sh');
+    let selectedModules = null;
+
+    if (ccChoice === '1' || ccChoice === '') {
+      const { PRESETS } = require('./statusline');
+      selectedModules = PRESETS.recommended;
+    } else if (ccChoice === '2') {
+      const { PRESETS } = require('./statusline');
+      selectedModules = PRESETS.minimal;
+    } else if (ccChoice === '3') {
+      const { PRESETS } = require('./statusline');
+      selectedModules = PRESETS.full;
+    } else if (ccChoice === '4') {
+      // Custom picker
+      const { MODULE_LIST, PRESETS } = require('./statusline');
+      const enabled = new Set(PRESETS.recommended); // start with recommended
+
+      let picking = true;
+      while (picking) {
+        console.log('  Status line modules:');
+        console.log('');
+        for (let i = 0; i < MODULE_LIST.length; i++) {
+          const m = MODULE_LIST[i];
+          const check = enabled.has(m.key) ? 'x' : ' ';
+          const num = String(i + 1);
+          const label = m.label.padEnd(22);
+          console.log('    [' + check + '] ' + num + '. ' + label + m.example);
+        }
+        console.log('');
+        console.log('  Toggle a number (1-' + MODULE_LIST.length + '), or press enter to confirm:');
+        const toggle = (await ask('        > ')).trim();
+
+        if (toggle === '') {
+          picking = false;
+        } else {
+          const idx = parseInt(toggle, 10) - 1;
+          if (idx >= 0 && idx < MODULE_LIST.length) {
+            const key = MODULE_LIST[idx].key;
+            if (enabled.has(key)) {
+              enabled.delete(key);
+            } else {
+              enabled.add(key);
+            }
+          }
+          console.log('');
+        }
+      }
+
+      selectedModules = MODULE_LIST.filter(m => enabled.has(m.key)).map(m => m.key);
+      console.log('');
+    }
+
+    if (selectedModules) {
+      // Save module selection to config
+      setConfig({ statusline_modules: selectedModules });
+
+      // Install status line script (Node.js version)
+      const srcScript = path.join(__dirname, 'statusline.js');
+      const destScript = path.join(claudeDir, 'tokburn-statusline.js');
 
       if (fs.existsSync(srcScript)) {
         fs.copyFileSync(srcScript, destScript);
         fs.chmodSync(destScript, '755');
       }
 
-      // Read existing settings
+      // Update Claude Code settings
       let settings = {};
       if (fs.existsSync(claudeSettings)) {
         try {
@@ -135,18 +191,42 @@ async function runInit() {
         } catch (_) {}
       }
 
-      // Set status line
       settings.statusLine = {
         type: 'command',
         command: destScript,
       };
 
-      // Write back
       if (!fs.existsSync(claudeDir)) {
         fs.mkdirSync(claudeDir, { recursive: true });
       }
       fs.writeFileSync(claudeSettings, JSON.stringify(settings, null, 2) + '\n');
-      console.log('  Status line configured.');
+
+      console.log('  Status line configured with ' + selectedModules.length + ' modules.');
+
+      // Show preview
+      console.log('');
+      console.log('  Preview:');
+      const lineOne = [];
+      for (const mod of selectedModules) {
+        if (mod === 'current_limit') continue;
+        if (mod === 'weekly_limit') continue;
+        const { MODULE_LIST } = require('./statusline');
+        const info = MODULE_LIST.find(m => m.key === mod);
+        if (info) lineOne.push(info.example);
+      }
+      if (lineOne.length > 0) {
+        console.log('  ' + lineOne.join(' \u2502 '));
+      }
+      if (selectedModules.includes('current_limit')) {
+        const { MODULE_LIST } = require('./statusline');
+        const info = MODULE_LIST.find(m => m.key === 'current_limit');
+        console.log('  current  ' + info.example);
+      }
+      if (selectedModules.includes('weekly_limit')) {
+        const { MODULE_LIST } = require('./statusline');
+        const info = MODULE_LIST.find(m => m.key === 'weekly_limit');
+        console.log('  weekly   ' + info.example);
+      }
       console.log('');
     }
   } else {
