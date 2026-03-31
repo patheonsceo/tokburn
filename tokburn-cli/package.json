@@ -1,0 +1,19 @@
+{
+  "name": "tokburn",
+  "version": "1.0.0",
+  "description": "See exactly how fast you're burning tokens and money across Claude Code sessions",
+  "main": "cli.js",
+  "bin": {
+    "tokburn": "./cli.js"
+  },
+  "keywords": ["claude", "anthropic", "tokens", "usage", "cli", "proxy"],
+  "scripts": {
+    "benchmark": "node test/benchmark.js",
+    "test": "node test/benchmark.js && node test/test-card.js",
+    "test:card": "node test/test-card.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.0.0"
+  }
+}
