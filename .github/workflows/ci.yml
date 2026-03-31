@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node-version: [18, 20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        working-directory: tokburn-cli
+        run: npm ci
+
+      - name: Run tests
+        working-directory: tokburn-cli
+        run: npm test
+
+      - name: Verify CLI works
+        working-directory: tokburn-cli
+        run: |
+          node cli.js --version
+          node cli.js --help
+          node cli.js status
+          node cli.js today
+
+      - name: Verify package builds
+        working-directory: tokburn-cli
+        run: npm pack --dry-run
