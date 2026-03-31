@@ -3,37 +3,16 @@
  * tokburn — Status line renderer for Claude Code
  * Reads session JSON from stdin, renders configured modules.
  * Configured via ~/.tokburn/config.json → statusline_modules
+ *
+ * IMPORTANT: Stdin reading and rendering only happens when run directly.
+ * When require()'d as a module, only MODULE_LIST, PRESETS are exported.
  */
 
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-// Read stdin synchronously
-let input = '';
-try {
-  input = fs.readFileSync('/dev/stdin', 'utf8');
-} catch (_) {}
-
-let data = {};
-try {
-  data = JSON.parse(input);
-} catch (_) {}
-
-// Load config
-const configPath = path.join(process.env.HOME || process.env.USERPROFILE, '.tokburn', 'config.json');
-let config = {};
-try {
-  if (fs.existsSync(configPath)) {
-    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  }
-} catch (_) {}
-
-const enabledModules = config.statusline_modules || [
-  'model_context', 'repo_branch', 'current_limit', 'weekly_limit', 'cost'
-];
-
-// ── Module renderers ────────────────────────────────────────────────────────────
+// ── Helpers ─────────────────────────────────────────────────────────────────────
 
 function dotBar(pct, count) {
   count = count || 10;
@@ -64,7 +43,6 @@ function formatResetTime(resetTimestamp) {
   const remainMins = mins % 60;
   if (hrs < 24) return hrs + 'hr ' + (remainMins > 0 ? remainMins + 'min' : '');
 
-  // Show day + time for >24hr
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const day = days[reset.getDay()];
   const h = reset.getHours();
@@ -74,86 +52,90 @@ function formatResetTime(resetTimestamp) {
   return day + ' ' + h12 + ':' + String(m).padStart(2, '0') + ampm;
 }
 
-const MODULES = {
-  model_context: function () {
-    const model = (data.model && data.model.display_name) || '?';
-    const ctxPct = Math.round((data.context_window && data.context_window.used_percentage) || 0);
-    return model + ' | ctx ' + ctxPct + '%';
-  },
+// ── Module builders (take data as parameter) ────────────────────────────────────
 
-  repo_branch: function () {
-    const cwd = (data.workspace && data.workspace.current_dir) || data.cwd || '';
-    const repoName = path.basename(cwd);
-    let branch = '';
-    try {
-      branch = execFileSync('git', ['-C', cwd, 'branch', '--show-current'], {
-        encoding: 'utf8', timeout: 500, stdio: ['pipe', 'pipe', 'pipe'],
-      }).trim();
-      const status = execFileSync('git', ['-C', cwd, 'status', '--porcelain'], {
-        encoding: 'utf8', timeout: 500, stdio: ['pipe', 'pipe', 'pipe'],
-      }).trim();
-      if (status) branch += '*';
-    } catch (_) {}
+function buildModules(data) {
+  return {
+    model_context: function () {
+      const model = (data.model && data.model.display_name) || '?';
+      const ctxPct = Math.round((data.context_window && data.context_window.used_percentage) || 0);
+      return model + ' | ctx ' + ctxPct + '%';
+    },
 
-    if (branch) return repoName + ' (' + branch + ')';
-    return repoName;
-  },
+    repo_branch: function () {
+      const cwd = (data.workspace && data.workspace.current_dir) || data.cwd || '';
+      const repoName = path.basename(cwd);
+      let branch = '';
+      try {
+        branch = execFileSync('git', ['-C', cwd, 'branch', '--show-current'], {
+          encoding: 'utf8', timeout: 500, stdio: ['pipe', 'pipe', 'pipe'],
+        }).trim();
+        const status = execFileSync('git', ['-C', cwd, 'status', '--porcelain'], {
+          encoding: 'utf8', timeout: 500, stdio: ['pipe', 'pipe', 'pipe'],
+        }).trim();
+        if (status) branch += '*';
+      } catch (_) {}
 
-  current_limit: function () {
-    const rl = data.rate_limits && data.rate_limits.five_hour;
-    if (!rl) return 'current  ' + dotBar(0) + '  0%';
+      if (branch) return repoName + ' (' + branch + ')';
+      return repoName;
+    },
 
-    const pct = Math.round(rl.used_percentage || 0);
-    const reset = formatResetTime(rl.resets_at);
-    return 'current  ' + dotBar(pct) + '  ' + pct + '%' + (reset ? ' \u21BB ' + reset : '');
-  },
+    current_limit: function () {
+      const rl = data.rate_limits && data.rate_limits.five_hour;
+      if (!rl) return 'current  ' + dotBar(0) + '  0%';
 
-  weekly_limit: function () {
-    const rl = data.rate_limits && data.rate_limits.seven_day;
-    if (!rl) return 'weekly   ' + dotBar(0) + '  0%';
+      const pct = Math.round(rl.used_percentage || 0);
+      const reset = formatResetTime(rl.resets_at);
+      return 'current  ' + dotBar(pct) + '  ' + pct + '%' + (reset ? ' \u21BB ' + reset : '');
+    },
 
-    const pct = Math.round(rl.used_percentage || 0);
-    const reset = formatResetTime(rl.resets_at);
-    return 'weekly   ' + dotBar(pct) + '  ' + pct + '%' + (reset ? ' \u21BB ' + reset : '');
-  },
+    weekly_limit: function () {
+      const rl = data.rate_limits && data.rate_limits.seven_day;
+      if (!rl) return 'weekly   ' + dotBar(0) + '  0%';
 
-  token_count: function () {
-    const input = (data.context_window && data.context_window.total_input_tokens) || 0;
-    const output = (data.context_window && data.context_window.total_output_tokens) || 0;
-    return abbreviate(input + output) + ' tok';
-  },
+      const pct = Math.round(rl.used_percentage || 0);
+      const reset = formatResetTime(rl.resets_at);
+      return 'weekly   ' + dotBar(pct) + '  ' + pct + '%' + (reset ? ' \u21BB ' + reset : '');
+    },
 
-  cost: function () {
-    const cost = (data.cost && data.cost.total_cost_usd) || 0;
-    return '$' + cost.toFixed(2);
-  },
+    token_count: function () {
+      const inp = (data.context_window && data.context_window.total_input_tokens) || 0;
+      const out = (data.context_window && data.context_window.total_output_tokens) || 0;
+      return abbreviate(inp + out) + ' tok';
+    },
 
-  burn_rate: function () {
-    try {
-      const usagePath = path.join(process.env.HOME || '', '.tokburn', 'usage.jsonl');
-      if (!fs.existsSync(usagePath)) return '';
-      const raw = fs.readFileSync(usagePath, 'utf8').trim();
-      if (!raw) return '';
-      const lines = raw.split('\n');
-      const today = new Date().toISOString().split('T')[0];
-      const todayEntries = [];
-      for (const l of lines) {
-        if (!l.startsWith('{"timestamp":"' + today)) continue;
-        try { todayEntries.push(JSON.parse(l)); } catch (_) {}
+    cost: function () {
+      const cost = (data.cost && data.cost.total_cost_usd) || 0;
+      return '$' + cost.toFixed(2);
+    },
+
+    burn_rate: function () {
+      try {
+        const usagePath = path.join(process.env.HOME || '', '.tokburn', 'usage.jsonl');
+        if (!fs.existsSync(usagePath)) return '';
+        const raw = fs.readFileSync(usagePath, 'utf8').trim();
+        if (!raw) return '';
+        const lines = raw.split('\n');
+        const today = new Date().toISOString().split('T')[0];
+        const todayEntries = [];
+        for (const l of lines) {
+          if (!l.startsWith('{"timestamp":"' + today)) continue;
+          try { todayEntries.push(JSON.parse(l)); } catch (_) {}
+        }
+        if (todayEntries.length < 2) return '';
+        const first = new Date(todayEntries[0].timestamp);
+        const last = new Date(todayEntries[todayEntries.length - 1].timestamp);
+        const elapsed = (last - first) / 60000;
+        if (elapsed <= 0) return '';
+        let total = 0;
+        for (const e of todayEntries) total += (e.input_tokens || 0) + (e.output_tokens || 0);
+        return '~' + abbreviate(Math.round(total / elapsed)) + '/min';
+      } catch (_) {
+        return '';
       }
-      if (todayEntries.length < 2) return '';
-      const first = new Date(todayEntries[0].timestamp);
-      const last = new Date(todayEntries[todayEntries.length - 1].timestamp);
-      const elapsed = (last - first) / 60000;
-      if (elapsed <= 0) return '';
-      let total = 0;
-      for (const e of todayEntries) total += (e.input_tokens || 0) + (e.output_tokens || 0);
-      return '~' + abbreviate(Math.round(total / elapsed)) + '/min';
-    } catch (_) {
-      return '';
-    }
-  },
-};
+    },
+  };
+}
 
 // ── Available modules metadata (used by init wizard) ────────────────────────────
 
@@ -175,16 +157,38 @@ const PRESETS = {
   full:        ['model_context', 'repo_branch', 'current_limit', 'weekly_limit', 'token_count', 'cost', 'burn_rate'],
 };
 
-// ── Render ───────────────────────────────────────────────────────────────────────
+// ── Main: only runs when executed directly (not require'd) ──────────────────────
 
 if (require.main === module) {
+  let input = '';
+  try {
+    input = fs.readFileSync('/dev/stdin', 'utf8');
+  } catch (_) {}
+
+  let data = {};
+  try {
+    data = JSON.parse(input);
+  } catch (_) {}
+
+  // Load config
+  const configPath = path.join(process.env.HOME || process.env.USERPROFILE, '.tokburn', 'config.json');
+  let config = {};
+  try {
+    if (fs.existsSync(configPath)) {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    }
+  } catch (_) {}
+
+  const enabledModules = config.statusline_modules || PRESETS.recommended;
+  const modules = buildModules(data);
+
   const outputLines = [];
   const lineOneModules = [];
   const extraLines = [];
 
   for (const mod of enabledModules) {
-    if (!MODULES[mod]) continue;
-    const val = MODULES[mod]();
+    if (!modules[mod]) continue;
+    const val = modules[mod]();
     if (!val) continue;
 
     if (mod === 'current_limit' || mod === 'weekly_limit') {
@@ -202,4 +206,4 @@ if (require.main === module) {
   process.stdout.write(outputLines.join('\n'));
 }
 
-module.exports = { MODULE_LIST, PRESETS, MODULES };
+module.exports = { MODULE_LIST, PRESETS, buildModules };
