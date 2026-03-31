@@ -42,12 +42,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tokburn/tokburn.git",
+    "url": "git+https://github.com/patheonsceo/tokburn.git",
     "directory": "tokburn-cli"
   },
-  "homepage": "https://github.com/tokburn/tokburn#readme",
+  "homepage": "https://github.com/patheonsceo/tokburn#readme",
   "bugs": {
-    "url": "https://github.com/tokburn/tokburn/issues"
+    "url": "https://github.com/patheonsceo/tokburn/issues"
   },
   "author": "",
   "license": "MIT",
