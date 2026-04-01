@@ -165,7 +165,7 @@ const PRESETS = {
 if (require.main === module) {
   let input = '';
   try {
-    input = fs.readFileSync('/dev/stdin', 'utf8');
+    input = fs.readFileSync(0, 'utf8');
   } catch (_) {}
 
   let data = {};

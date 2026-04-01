@@ -1,6 +1,6 @@
 {
   "name": "tokburn",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "See exactly how fast you're burning tokens and money across Claude Code sessions",
   "main": "cli.js",
   "bin": {

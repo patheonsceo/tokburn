@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { render, Box, Text, Newline, useApp } from 'ink';
+import { render, Box, Text, Newline, useApp, useInput } from 'ink';
 import { Select, Spinner, ProgressBar } from '@inkjs/ui';
 import chalk from 'chalk';
 import { createRequire } from 'node:module';
@@ -354,39 +354,54 @@ function ShellStep({ onSelect, rcFile }) {
 }
 
 function StatusLineStep({ onSelect }) {
-  const [selected, setSelected] = useState(null);
+  const STATUS_OPTIONS = [
+    { label: 'Recommended   model | ctx% | repo | limits | cost', value: 'recommended' },
+    { label: 'Minimal       model | current rate limit', value: 'minimal' },
+    { label: 'Full          everything including burn rate', value: 'full' },
+    { label: 'Skip', value: 'skip' },
+  ];
 
-  const handleChange = useCallback((value) => {
-    setSelected(value);
-    onSelect(value);
-  }, [onSelect]);
+  const [highlightIndex, setHighlightIndex] = useState(0);
+
+  useInput((input, key) => {
+    if (key.upArrow) {
+      setHighlightIndex(i => Math.max(0, i - 1));
+    } else if (key.downArrow) {
+      setHighlightIndex(i => Math.min(STATUS_OPTIONS.length - 1, i + 1));
+    } else if (key.return) {
+      onSelect(STATUS_OPTIONS[highlightIndex].value);
+    }
+  });
+
+  const currentPreset = STATUS_OPTIONS[highlightIndex].value;
+  const preview = previewForPreset(currentPreset);
 
   return React.createElement(Box, { flexDirection: 'column', marginTop: 0 },
     React.createElement(Text, { bold: true }, '  [4/4] Configure Claude Code status line?'),
     React.createElement(Newline, null),
-    React.createElement(Box, { paddingLeft: 4 },
-      React.createElement(Select, {
-        options: [
-          { label: 'Recommended   model | ctx% | repo | limits | cost', value: 'recommended' },
-          { label: 'Minimal       model | current rate limit', value: 'minimal' },
-          { label: 'Full          everything including burn rate', value: 'full' },
-          { label: 'Skip', value: 'skip' },
-        ],
-        onChange: handleChange,
-      })
+    // Custom select with highlight tracking
+    React.createElement(Box, { flexDirection: 'column', paddingLeft: 4 },
+      ...STATUS_OPTIONS.map((opt, i) =>
+        React.createElement(Text, { key: opt.value },
+          i === highlightIndex
+            ? React.createElement(Text, { color: 'cyan' }, '> ' + opt.label)
+            : React.createElement(Text, { dimColor: true }, '  ' + opt.label)
+        )
+      )
     ),
-    // Preview box shown after selection or for the default
-    !selected ? React.createElement(Box, {
+    React.createElement(Text, { dimColor: true }, '    (arrows to move, enter to confirm)'),
+    // Live preview that updates as user arrows through
+    preview ? React.createElement(Box, {
       borderStyle: 'round',
-      borderColor: 'gray',
+      borderColor: currentPreset === 'skip' ? 'gray' : 'cyan',
       paddingX: 1,
       marginTop: 1,
       marginLeft: 4,
     },
       React.createElement(Box, { flexDirection: 'column' },
-        React.createElement(Text, { dimColor: true }, 'Preview (Recommended):'),
-        ...previewForPreset('recommended').split('\n').map((line, i) =>
-          React.createElement(Text, { key: `p-${i}` }, line)
+        React.createElement(Text, { dimColor: true }, 'Preview:'),
+        ...preview.split('\n').map((line, i) =>
+          React.createElement(Text, { key: `preview-${currentPreset}-${i}` }, line)
         )
       )
     ) : null
