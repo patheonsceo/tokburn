@@ -1,6 +1,6 @@
 {
   "name": "tokburn",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "See exactly how fast you're burning tokens and money across Claude Code sessions",
   "main": "cli.js",
   "bin": {
@@ -15,6 +15,7 @@
     "costs.js",
     "config.js",
     "init.js",
+    "init-ui.mjs",
     "card.js",
     "statusline.js",
     "statusline.sh",

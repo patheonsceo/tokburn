@@ -120,8 +120,13 @@ program
   .command('init')
   .description('Interactive setup wizard for Claude Code')
   .action(async () => {
-    const { runInit } = require('./init');
-    await runInit();
+    try {
+      await import('./init-ui.mjs');
+    } catch (err) {
+      // Fallback to readline wizard if Ink fails (e.g. non-TTY, missing deps)
+      const { runInit } = require('./init');
+      await runInit();
+    }
   });
 
 program
