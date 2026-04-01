@@ -309,8 +309,8 @@ function PlanStep({ onSelect }) {
     React.createElement(Box, { paddingLeft: 4 },
       React.createElement(Select, {
         options: [
-          { label: 'Pro        ~500K tokens / 5hr window', value: 'pro' },
-          { label: 'Max        ~2M tokens / 5hr window', value: 'max' },
+          { label: 'Pro        ~500K usage limit / 5hr', value: 'pro' },
+          { label: 'Max        ~2M usage limit / 5hr', value: 'max' },
           { label: 'API only   (no plan limits)', value: 'api' },
         ],
         onChange: onSelect,

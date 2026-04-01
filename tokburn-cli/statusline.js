@@ -57,8 +57,11 @@ function formatResetTime(resetTimestamp) {
 function buildModules(data) {
   return {
     model_context: function () {
-      const model = (data.model && data.model.display_name) || '?';
+      const model = (data.model && data.model.display_name)
+        || (data.model && data.model.id)
+        || '';
       const ctxPct = Math.round((data.context_window && data.context_window.used_percentage) || 0);
+      if (!model) return 'ctx ' + ctxPct + '%';
       return model + ' | ctx ' + ctxPct + '%';
     },
 

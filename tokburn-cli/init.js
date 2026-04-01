@@ -42,8 +42,8 @@ async function runInit() {
 
   console.log('  [1/4] Which Claude plan are you on?');
   console.log('');
-  console.log('        1) Pro       ~500K tokens / 5hr window');
-  console.log('        2) Max       ~2M tokens / 5hr window');
+  console.log('        1) Pro       ~500K usage limit / 5hr');
+  console.log('        2) Max       ~2M usage limit / 5hr');
   console.log('        3) API only  (no plan limits)');
   console.log('');
   const planChoice = (await ask('        > ')).trim();
