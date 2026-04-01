@@ -119,11 +119,17 @@ program
 program
   .command('init')
   .description('Interactive setup wizard for Claude Code')
-  .action(async () => {
+  .option('--remove', 'Uninstall tokburn from Claude Code')
+  .action(async (opts) => {
+    if (opts.remove) {
+      const { uninstallTokburn } = require('./init');
+      uninstallTokburn();
+      console.log('\n  tokburn removed from Claude Code.\n');
+      return;
+    }
     try {
       await import('./init-ui.mjs');
     } catch (err) {
-      // Fallback to readline wizard if Ink fails (e.g. non-TTY, missing deps)
       const { runInit } = require('./init');
       await runInit();
     }

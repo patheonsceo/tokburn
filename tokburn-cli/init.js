@@ -320,7 +320,113 @@ function configureStatusLine(selectedModules) {
   fs.writeFileSync(claudeSettings, JSON.stringify(settings, null, 2) + '\n');
 }
 
+function installSkills() {
+  const home = process.env.HOME || process.env.USERPROFILE;
+  const skillsDir = path.join(home, '.claude', 'skills');
+
+  const skillNames = ['tokburn-check', 'tokburn-plan'];
+  for (const name of skillNames) {
+    const src = path.join(__dirname, 'skills', name, 'SKILL.md');
+    const destDir = path.join(skillsDir, name);
+    if (fs.existsSync(src)) {
+      fs.mkdirSync(destDir, { recursive: true });
+      fs.copyFileSync(src, path.join(destDir, 'SKILL.md'));
+    }
+  }
+  return skillNames.length;
+}
+
+function installHooks() {
+  const home = process.env.HOME || process.env.USERPROFILE;
+  const claudeDir = path.join(home, '.claude');
+  const claudeSettings = path.join(claudeDir, 'settings.json');
+
+  let settings = {};
+  if (fs.existsSync(claudeSettings)) {
+    try { settings = JSON.parse(fs.readFileSync(claudeSettings, 'utf8')); } catch (_) {}
+  }
+
+  if (!settings.hooks) settings.hooks = {};
+  if (!settings.hooks.PreToolUse) settings.hooks.PreToolUse = [];
+
+  // Install pre-read warning hook script
+  const preReadSrc = path.join(__dirname, 'hooks', 'pre-read-warn.sh');
+  const preReadDest = path.join(claudeDir, 'tokburn-pre-read-warn.sh');
+  if (fs.existsSync(preReadSrc)) {
+    fs.copyFileSync(preReadSrc, preReadDest);
+    fs.chmodSync(preReadDest, '755');
+  }
+
+  // Add hook config if not already present
+  const hasPreRead = settings.hooks.PreToolUse.some(function (h) {
+    return h.hooks && h.hooks.some(function (hh) {
+      return hh.command && hh.command.includes('tokburn-pre-read');
+    });
+  });
+  if (!hasPreRead) {
+    settings.hooks.PreToolUse.push({
+      matcher: 'Read',
+      hooks: [{ type: 'command', command: preReadDest }],
+    });
+  }
+
+  if (!fs.existsSync(claudeDir)) {
+    fs.mkdirSync(claudeDir, { recursive: true });
+  }
+  fs.writeFileSync(claudeSettings, JSON.stringify(settings, null, 2) + '\n');
+  return 1;
+}
+
+function uninstallTokburn() {
+  const home = process.env.HOME || process.env.USERPROFILE;
+
+  // Remove skills
+  const skillNames = ['tokburn-check', 'tokburn-plan'];
+  for (const name of skillNames) {
+    const dir = path.join(home, '.claude', 'skills', name);
+    if (fs.existsSync(dir)) {
+      fs.rmSync(dir, { recursive: true });
+    }
+  }
+
+  // Remove hook scripts and statusline
+  const hookFiles = ['tokburn-pre-read-warn.sh', 'tokburn-statusline.js'];
+  for (const f of hookFiles) {
+    const p = path.join(home, '.claude', f);
+    if (fs.existsSync(p)) fs.unlinkSync(p);
+  }
+
+  // Remove tokburn entries from settings.json
+  const claudeSettings = path.join(home, '.claude', 'settings.json');
+  if (fs.existsSync(claudeSettings)) {
+    try {
+      const settings = JSON.parse(fs.readFileSync(claudeSettings, 'utf8'));
+      if (settings.hooks) {
+        for (const event of Object.keys(settings.hooks)) {
+          settings.hooks[event] = settings.hooks[event].filter(function (h) {
+            return !(h.hooks && h.hooks.some(function (hh) {
+              return hh.command && hh.command.includes('tokburn');
+            }));
+          });
+          if (settings.hooks[event].length === 0) delete settings.hooks[event];
+        }
+        if (Object.keys(settings.hooks).length === 0) delete settings.hooks;
+      }
+      if (settings.statusLine && settings.statusLine.command && settings.statusLine.command.includes('tokburn')) {
+        delete settings.statusLine;
+      }
+      fs.writeFileSync(claudeSettings, JSON.stringify(settings, null, 2) + '\n');
+    } catch (_) {}
+  }
+
+  // Clean config
+  const tokburnDir = path.join(home, '.tokburn');
+  const configFile = path.join(tokburnDir, 'config.json');
+  if (fs.existsSync(configFile)) fs.unlinkSync(configFile);
+}
+
 module.exports = {
   runInit, detectEnvironment, configurePlan, configureProxy,
-  configureShell, configureStatusLine, PLANS
+  configureShell, configureStatusLine, installSkills, installHooks,
+  uninstallTokburn, PLANS
 };

@@ -19,6 +19,10 @@
     "card.js",
     "statusline.js",
     "statusline.sh",
+    "skills/tokburn-check/SKILL.md",
+    "skills/tokburn-plan/SKILL.md",
+    "hooks/pre-read-warn.sh",
+    "hooks/stop-context-check.sh",
     "README.md",
     "LICENSE"
   ],
