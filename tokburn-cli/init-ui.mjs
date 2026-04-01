@@ -11,7 +11,7 @@ import chalk from 'chalk';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { detectEnvironment, configurePlan, configureProxy, configureShell, configureStatusLine, PLANS } = require('./init.js');
+const { detectEnvironment, configurePlan, configureProxy, configureShell, configureStatusLine, installSkills, installHooks, PLANS } = require('./init.js');
 const { getConfig } = require('./config.js');
 const { PRESETS, MODULE_LIST } = require('./statusline.js');
 
@@ -200,6 +200,27 @@ function App() {
           const modules = PRESETS[statusPreset];
           configureStatusLine(modules);
           return { count: modules.length };
+        },
+      });
+    }
+
+    // Always install skills and hooks if Claude Code is present
+    if (env && env.hasClaudeCode) {
+      tasks.push({
+        key: 'skills',
+        label: 'Skills installed',
+        run: () => {
+          const count = installSkills();
+          return { count };
+        },
+      });
+
+      tasks.push({
+        key: 'hooks',
+        label: 'Hooks configured',
+        run: () => {
+          const count = installHooks();
+          return { count };
         },
       });
     }
@@ -467,10 +488,13 @@ function DoneSummary({ plan, wantProxy, wantShell, statusPreset, env, taskResult
     React.createElement(Text, null, completedLine('Proxy', proxyDesc)),
     React.createElement(Text, null, completedLine('Shell', shellDesc)),
     React.createElement(Text, null, completedLine('Status line', statusDesc)),
+    env.hasClaudeCode ? React.createElement(Text, null, completedLine('Skills', '/tokburn-check, /tokburn-plan')) : null,
+    env.hasClaudeCode ? React.createElement(Text, null, completedLine('Hooks', 'large file warning')) : null,
     React.createElement(Newline, null),
     React.createElement(Text, { bold: true }, '  Try these:'),
     React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, 'tokburn status'), '    check everything'),
-    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, 'tokburn today'), '     see today\'s usage'),
+    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, '/tokburn-check'), '    session health + tips'),
+    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, '/tokburn-plan src/'), '  estimate task cost'),
     React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, 'tokburn live'), '      real-time dashboard'),
     React.createElement(Newline, null)
   );
