@@ -1,10 +1,28 @@
 # tokburn
 
+```
+   _        _
+  | |_ ___ | | __ ___ _   _ _ __ _ __
+  | __/ _ \| |/ /| _ | | | | '__| '_ \
+  | || (_) |   < | _ | |_| | |  | | | |
+   \__\___/|_|\_\|___|\__,_|_|  |_| |_|
+
+  token tracking for Claude Code
+```
+
 **You're burning tokens blind. tokburn shows you the fire.**
 
 [![npm version](https://img.shields.io/npm/v/tokburn)](https://www.npmjs.com/package/tokburn)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
+
+```
+  Opus 4.6 (1M context) | ctx 31% | tokburn (main*) | 224.9K tok | $38.86 | ~8.6K/min
+  current  ●●●●●○○○○○  48%  ↻ 51min
+  weekly   ●●●●●○○○○○  48%  ↻ Fri 12:30PM
+```
+
+Works with: **Claude Code** | Codex, Cursor -- coming soon
 
 ---
 
