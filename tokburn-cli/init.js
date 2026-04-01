@@ -257,4 +257,70 @@ async function runInit() {
   rl.close();
 }
 
-module.exports = { runInit };
+// ── Exported config functions (used by Ink UI) ──────────────────────────────
+
+function detectEnvironment() {
+  const home = process.env.HOME || process.env.USERPROFILE;
+  const shell = path.basename(process.env.SHELL || 'bash');
+  const rcFile = shell === 'zsh' ? '.zshrc' : shell === 'fish' ? '.config/fish/config.fish' : '.bashrc';
+  const rcPath = path.join(home, rcFile);
+  const claudeDir = path.join(home, '.claude');
+  const claudeSettings = path.join(claudeDir, 'settings.json');
+  const hasClaudeCode = fs.existsSync(claudeDir);
+
+  return { home, shell, rcFile, rcPath, claudeDir, claudeSettings, hasClaudeCode };
+}
+
+function configurePlan(plan) {
+  setConfig({ plan, limits: PLANS });
+}
+
+function configureProxy() {
+  if (isRunning()) {
+    return { success: true, message: 'already running', pid: null };
+  }
+  return startDaemon();
+}
+
+function configureShell(rcPath, port) {
+  const envLine = `export ANTHROPIC_BASE_URL=http://127.0.0.1:${port}`;
+  const existing = fs.existsSync(rcPath) ? fs.readFileSync(rcPath, 'utf8') : '';
+  if (existing.includes('ANTHROPIC_BASE_URL')) {
+    return { added: false, reason: 'already exists' };
+  }
+  fs.appendFileSync(rcPath, '\n# tokburn proxy\n' + envLine + '\n');
+  return { added: true };
+}
+
+function configureStatusLine(selectedModules) {
+  const home = process.env.HOME || process.env.USERPROFILE;
+  const claudeDir = path.join(home, '.claude');
+  const claudeSettings = path.join(claudeDir, 'settings.json');
+
+  setConfig({ statusline_modules: selectedModules });
+
+  const srcScript = path.join(__dirname, 'statusline.js');
+  const destScript = path.join(claudeDir, 'tokburn-statusline.js');
+
+  if (fs.existsSync(srcScript)) {
+    fs.copyFileSync(srcScript, destScript);
+    fs.chmodSync(destScript, '755');
+  }
+
+  let settings = {};
+  if (fs.existsSync(claudeSettings)) {
+    try { settings = JSON.parse(fs.readFileSync(claudeSettings, 'utf8')); } catch (_) {}
+  }
+
+  settings.statusLine = { type: 'command', command: destScript };
+
+  if (!fs.existsSync(claudeDir)) {
+    fs.mkdirSync(claudeDir, { recursive: true });
+  }
+  fs.writeFileSync(claudeSettings, JSON.stringify(settings, null, 2) + '\n');
+}
+
+module.exports = {
+  runInit, detectEnvironment, configurePlan, configureProxy,
+  configureShell, configureStatusLine, PLANS
+};
