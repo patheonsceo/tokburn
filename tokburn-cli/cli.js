@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 const { Command } = require('commander');
-const { startDaemon, stopDaemon, isRunning } = require('./proxy');
 const { getToday, getWeek, clearToday, exportCSV, getWeekByDay } = require('./store');
 const { formatToday, formatWeek, formatStatus, startLiveTUI } = require('./display');
 const { calculateCost } = require('./costs');
@@ -17,37 +16,9 @@ program
   .version('1.0.0');
 
 program
-  .command('start')
-  .description('Start the tokburn proxy daemon')
-  .action(() => {
-    const result = startDaemon();
-    if (result.success) {
-      const config = getConfig();
-      console.log(`\n  \x1b[32m\u25CF\x1b[0m ${result.message}`);
-      console.log(`\n  Set your API base URL:`);
-      console.log(`  \x1b[36mexport ANTHROPIC_BASE_URL=http://127.0.0.1:${config.port}\x1b[0m\n`);
-    } else {
-      console.log(`\n  \x1b[33m\u25CF\x1b[0m ${result.message}\n`);
-    }
-  });
-
-program
-  .command('stop')
-  .description('Stop the tokburn proxy daemon')
-  .action(() => {
-    const result = stopDaemon();
-    if (result.success) {
-      console.log(`\n  \x1b[90m\u25CB\x1b[0m ${result.message}\n`);
-    } else {
-      console.log(`\n  \x1b[33m\u25CF\x1b[0m ${result.message}\n`);
-    }
-  });
-
-program
   .command('status')
-  .description('Show proxy status and today\'s quick summary')
+  .description('Config summary and today\'s usage')
   .action(() => {
-    const running = isRunning();
     const entries = getToday();
     let summary = null;
 
@@ -63,7 +34,7 @@ program
       summary = { input, output, requests: entries.length, cost };
     }
 
-    console.log(formatStatus(running, summary));
+    console.log(formatStatus(summary));
   });
 
 program
@@ -178,27 +149,22 @@ program
           try {
             const entry = JSON.parse(line);
 
-            // Look for entries with usage data
             let inputTokens = 0;
             let outputTokens = 0;
             let model = null;
 
-            // Direct usage field
             if (entry.usage) {
               inputTokens = entry.usage.input_tokens || 0;
               outputTokens = entry.usage.output_tokens || 0;
             }
 
-            // Message with usage
             if (entry.message && entry.message.usage) {
               inputTokens = entry.message.usage.input_tokens || inputTokens;
               outputTokens = entry.message.usage.output_tokens || outputTokens;
             }
 
-            // Model
             model = entry.model || (entry.message && entry.message.model) || null;
 
-            // costUSD field (Claude Code internal)
             if (entry.costUSD) {
               totalCost += entry.costUSD;
             }
@@ -232,87 +198,34 @@ program
     console.log('');
   });
 
+// Hidden proxy commands for API users
 program
-  .command('_burn-rate', { hidden: true })
-  .description('Output current burn rate (internal, used by status line)')
+  .command('start', { hidden: true })
+  .description('Start the tokburn proxy daemon (API users)')
   .action(() => {
-    const entries = getToday();
-    if (entries.length < 2) {
-      process.stdout.write('0');
-      return;
-    }
-    const first = new Date(entries[0].timestamp);
-    const last = new Date(entries[entries.length - 1].timestamp);
-    const elapsed = (last - first) / 60000;
-    if (elapsed <= 0) {
-      process.stdout.write('0');
-      return;
-    }
-    let total = 0;
-    for (const e of entries) {
-      total += (e.input_tokens || 0) + (e.output_tokens || 0);
-    }
-    const rate = Math.round(total / elapsed);
-    if (rate >= 1000000) {
-      process.stdout.write((rate / 1000000).toFixed(1) + 'M');
-    } else if (rate >= 1000) {
-      process.stdout.write((rate / 1000).toFixed(1) + 'K');
+    const { startDaemon } = require('./proxy');
+    const result = startDaemon();
+    if (result.success) {
+      const config = getConfig();
+      console.log(`\n  \x1b[32m\u25CF\x1b[0m ${result.message}`);
+      console.log(`\n  Set your API base URL:`);
+      console.log(`  \x1b[36mexport ANTHROPIC_BASE_URL=http://127.0.0.1:${config.port}\x1b[0m\n`);
     } else {
-      process.stdout.write(String(rate));
+      console.log(`\n  \x1b[33m\u25CF\x1b[0m ${result.message}\n`);
     }
   });
 
 program
-  .command('_task-summary', { hidden: true })
-  .description('Output task summary card (internal, used by hooks)')
-  .argument('[task-name]', 'Name of the completed task', 'Task')
-  .action((taskName) => {
-    const entries = getToday();
-    const { renderCollapsed, renderExpanded } = require('./card');
-    const conf = getConfig();
-    const plan = conf.plan || 'pro';
-    const limits = conf.limits || {};
-    const limit = (limits[plan] && limits[plan].estimated_tokens) || 500000;
-
-    let sessionInput = 0, sessionOutput = 0, sessionCost = 0;
-    for (const e of entries) {
-      sessionInput += e.input_tokens || 0;
-      sessionOutput += e.output_tokens || 0;
-      sessionCost += calculateCost(e.model, e.input_tokens || 0, e.output_tokens || 0);
+  .command('stop', { hidden: true })
+  .description('Stop the tokburn proxy daemon (API users)')
+  .action(() => {
+    const { stopDaemon } = require('./proxy');
+    const result = stopDaemon();
+    if (result.success) {
+      console.log(`\n  \x1b[90m\u25CB\x1b[0m ${result.message}\n`);
+    } else {
+      console.log(`\n  \x1b[33m\u25CF\x1b[0m ${result.message}\n`);
     }
-    const sessionTotal = sessionInput + sessionOutput;
-    const sessionPct = (sessionTotal / limit) * 100;
-
-    // Last request as "this task" (best approximation without task boundaries)
-    const last = entries[entries.length - 1] || {};
-    const taskInput = last.input_tokens || 0;
-    const taskOutput = last.output_tokens || 0;
-
-    // Time remaining
-    let timeRemaining = null;
-    if (entries.length >= 2) {
-      const first = new Date(entries[0].timestamp);
-      const elapsed = (Date.now() - first.getTime()) / 60000;
-      if (elapsed > 0) {
-        const rate = sessionTotal / elapsed;
-        const remaining = limit - sessionTotal;
-        if (rate > 0 && remaining > 0) {
-          const mins = Math.round(remaining / rate);
-          timeRemaining = mins >= 60
-            ? Math.floor(mins / 60) + 'hr ' + (mins % 60) + 'min'
-            : mins + 'min';
-        }
-      }
-    }
-
-    console.log('');
-    console.log(renderCollapsed(taskName, taskInput + taskOutput, sessionPct));
-    console.log(renderExpanded(
-      taskName, taskInput, taskOutput, 0,
-      sessionInput, sessionOutput, sessionCost,
-      sessionPct, timeRemaining, entries.length
-    ));
-    console.log('');
   });
 
 program.parse();

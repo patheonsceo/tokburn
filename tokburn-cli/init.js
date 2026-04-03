@@ -1,14 +1,13 @@
 /**
  * tokburn — init.js
  * Interactive setup wizard for Claude Code integration.
- * Configures: plan limits, proxy daemon, shell env var, status line.
+ * Configures: plan limits, status line.
  */
 
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const { getConfig, setConfig, getTokburnDir } = require('./config');
-const { startDaemon, isRunning } = require('./proxy');
 
 const PLANS = {
   pro:  { window_hours: 5, estimated_tokens: 500000 },
@@ -29,10 +28,7 @@ async function runInit() {
   // ── Detect environment ──────────────────────────────────────────────────────
 
   const shell = path.basename(process.env.SHELL || 'bash');
-  const rcFile = shell === 'zsh' ? '.zshrc' : shell === 'fish' ? '.config/fish/config.fish' : '.bashrc';
-  const rcPath = path.join(home, rcFile);
   const claudeDir = path.join(home, '.claude');
-  const claudeSettings = path.join(claudeDir, 'settings.json');
   const hasClaudeCode = fs.existsSync(claudeDir);
 
   console.log('  Detected: ' + shell + ' shell' + (hasClaudeCode ? ', Claude Code installed' : ''));
@@ -40,7 +36,7 @@ async function runInit() {
 
   // ── Step 1: Plan ────────────────────────────────────────────────────────────
 
-  console.log('  [1/4] Which Claude plan are you on?');
+  console.log('  [1/2] Which Claude plan are you on?');
   console.log('');
   console.log('        1) Pro       ~500K usage limit / 5hr');
   console.log('        2) Max       ~2M usage limit / 5hr');
@@ -50,187 +46,75 @@ async function runInit() {
   const plan = planChoice === '2' ? 'max' : planChoice === '3' ? 'api' : 'pro';
   console.log('');
 
-  // ── Step 2: Proxy ───────────────────────────────────────────────────────────
-
-  console.log('  [2/4] Start the proxy daemon?');
-  console.log('        Enables per-request tracking for detailed breakdowns.');
-  console.log('');
-  console.log('        1) Yes, start now');
-  console.log('        2) No, skip');
-  console.log('');
-  const proxyChoice = (await ask('        > ')).trim();
-  const wantProxy = proxyChoice !== '2';
-  console.log('');
-
-  if (wantProxy) {
-    if (isRunning()) {
-      console.log('  Proxy already running.');
-    } else {
-      const result = startDaemon();
-      console.log('  ' + result.message);
-    }
-    console.log('');
-  }
-
-  // ── Step 3: Shell config ────────────────────────────────────────────────────
-
-  let addedShellConfig = false;
-
-  if (wantProxy) {
-    console.log('  [3/4] Add ANTHROPIC_BASE_URL to ~/' + rcFile + '?');
-    console.log('        Required for the proxy to intercept API calls.');
-    console.log('');
-    console.log('        1) Yes, add it');
-    console.log('        2) No, I\'ll do it manually');
-    console.log('');
-    const shellChoice = (await ask('        > ')).trim();
-    console.log('');
-
-    if (shellChoice !== '2') {
-      const config = getConfig();
-      const envLine = `export ANTHROPIC_BASE_URL=http://127.0.0.1:${config.port}`;
-      const existing = fs.existsSync(rcPath) ? fs.readFileSync(rcPath, 'utf8') : '';
-
-      if (existing.includes('ANTHROPIC_BASE_URL')) {
-        console.log('  ANTHROPIC_BASE_URL already in ~/' + rcFile);
-      } else {
-        fs.appendFileSync(rcPath, '\n# tokburn proxy\n' + envLine + '\n');
-        console.log('  Added to ~/' + rcFile);
-        addedShellConfig = true;
-      }
-      console.log('');
-    }
-  } else {
-    console.log('  [3/4] Skipping shell config (no proxy).');
-    console.log('');
-  }
-
-  // ── Step 4: Claude Code status line ─────────────────────────────────────────
+  // ── Step 2: Claude Code status line ─────────────────────────────────────────
 
   if (hasClaudeCode) {
-    console.log('  [4/4] Configure Claude Code status line?');
+    console.log('  [2/2] Configure Claude Code status line?');
     console.log('');
-    console.log('        1) Recommended   model | ctx% | repo | limits | cost');
-    console.log('        2) Minimal       model | current rate limit');
-    console.log('        3) Full          everything including burn rate');
-    console.log('        4) Custom        pick your own modules');
-    console.log('        5) Skip');
+    console.log('        1) Recommended   all modules enabled');
+    console.log('        2) Minimal       model + context + 5hr limit');
+    console.log('        3) Custom        pick your own modules');
+    console.log('        4) Skip');
     console.log('');
     const ccChoice = (await ask('        > ')).trim();
     console.log('');
 
-    let selectedModules = null;
+    let selectedElements = null;
 
     if (ccChoice === '1' || ccChoice === '') {
-      const { PRESETS } = require('./statusline');
-      selectedModules = PRESETS.recommended;
+      const { ALL_RICH_KEYS } = require('./statusline');
+      selectedElements = ALL_RICH_KEYS.slice();
     } else if (ccChoice === '2') {
-      const { PRESETS } = require('./statusline');
-      selectedModules = PRESETS.minimal;
+      const { RICH_PRESETS } = require('./statusline');
+      selectedElements = RICH_PRESETS.minimal.slice();
     } else if (ccChoice === '3') {
-      const { PRESETS } = require('./statusline');
-      selectedModules = PRESETS.full;
-    } else if (ccChoice === '4') {
-      // Custom picker
-      const { MODULE_LIST, PRESETS } = require('./statusline');
-      const enabled = new Set(PRESETS.recommended); // start with recommended
+      const { RICH_ELEMENTS, ALL_RICH_KEYS } = require('./statusline');
+      const enabled = new Set(ALL_RICH_KEYS);
 
       let picking = true;
       while (picking) {
+        let currentLine = 0;
         console.log('  Status line modules:');
         console.log('');
-        for (let i = 0; i < MODULE_LIST.length; i++) {
-          const m = MODULE_LIST[i];
-          const check = enabled.has(m.key) ? 'x' : ' ';
-          const num = String(i + 1);
-          const label = m.label.padEnd(22);
-          console.log('    [' + check + '] ' + num + '. ' + label + m.example);
+        for (let i = 0; i < RICH_ELEMENTS.length; i++) {
+          const el = RICH_ELEMENTS[i];
+          if (el.line !== currentLine) {
+            currentLine = el.line;
+            console.log('    LINE ' + el.line);
+          }
+          const check = enabled.has(el.key) ? 'x' : ' ';
+          const num = String(i + 1).padStart(2);
+          const label = el.label.padEnd(20);
+          console.log('    [' + check + '] ' + num + '. ' + label + el.example);
         }
         console.log('');
-        console.log('  Toggle a number (1-' + MODULE_LIST.length + '), or press enter to confirm:');
+        console.log('  Toggle (1-' + RICH_ELEMENTS.length + '), or press enter to confirm:');
         const toggle = (await ask('        > ')).trim();
 
         if (toggle === '') {
           picking = false;
         } else {
           const idx = parseInt(toggle, 10) - 1;
-          if (idx >= 0 && idx < MODULE_LIST.length) {
-            const key = MODULE_LIST[idx].key;
-            if (enabled.has(key)) {
-              enabled.delete(key);
-            } else {
-              enabled.add(key);
-            }
+          if (idx >= 0 && idx < RICH_ELEMENTS.length) {
+            const key = RICH_ELEMENTS[idx].key;
+            if (enabled.has(key)) enabled.delete(key);
+            else enabled.add(key);
           }
           console.log('');
         }
       }
 
-      selectedModules = MODULE_LIST.filter(m => enabled.has(m.key)).map(m => m.key);
+      selectedElements = RICH_ELEMENTS.filter(el => enabled.has(el.key)).map(el => el.key);
       console.log('');
     }
 
-    if (selectedModules) {
-      // Save module selection to config
-      setConfig({ statusline_modules: selectedModules });
-
-      // Install status line script (Node.js version)
-      const srcScript = path.join(__dirname, 'statusline.js');
-      const destScript = path.join(claudeDir, 'tokburn-statusline.js');
-
-      if (fs.existsSync(srcScript)) {
-        fs.copyFileSync(srcScript, destScript);
-        fs.chmodSync(destScript, '755');
-      }
-
-      // Update Claude Code settings
-      let settings = {};
-      if (fs.existsSync(claudeSettings)) {
-        try {
-          settings = JSON.parse(fs.readFileSync(claudeSettings, 'utf8'));
-        } catch (_) {}
-      }
-
-      settings.statusLine = {
-        type: 'command',
-        command: destScript,
-      };
-
-      if (!fs.existsSync(claudeDir)) {
-        fs.mkdirSync(claudeDir, { recursive: true });
-      }
-      fs.writeFileSync(claudeSettings, JSON.stringify(settings, null, 2) + '\n');
-
-      console.log('  Status line configured with ' + selectedModules.length + ' modules.');
-
-      // Show preview
-      console.log('');
-      console.log('  Preview:');
-      const lineOne = [];
-      for (const mod of selectedModules) {
-        if (mod === 'current_limit') continue;
-        if (mod === 'weekly_limit') continue;
-        const { MODULE_LIST } = require('./statusline');
-        const info = MODULE_LIST.find(m => m.key === mod);
-        if (info) lineOne.push(info.example);
-      }
-      if (lineOne.length > 0) {
-        console.log('  ' + lineOne.join(' \u2502 '));
-      }
-      if (selectedModules.includes('current_limit')) {
-        const { MODULE_LIST } = require('./statusline');
-        const info = MODULE_LIST.find(m => m.key === 'current_limit');
-        console.log('  current  ' + info.example);
-      }
-      if (selectedModules.includes('weekly_limit')) {
-        const { MODULE_LIST } = require('./statusline');
-        const info = MODULE_LIST.find(m => m.key === 'weekly_limit');
-        console.log('  weekly   ' + info.example);
-      }
+    if (selectedElements) {
+      configureStatusLine(['rich'], selectedElements);
+      console.log('  Status line configured with ' + selectedElements.length + ' modules.');
       console.log('');
     }
   } else {
-    console.log('  [4/4] Claude Code not detected, skipping.');
+    console.log('  [2/2] Claude Code not detected, skipping status line.');
     console.log('');
   }
 
@@ -244,15 +128,10 @@ async function runInit() {
   console.log('  Done. tokburn is ready.');
   console.log('');
   console.log('  Commands:');
-  console.log('    tokburn status   check proxy + today\'s usage');
+  console.log('    tokburn status   config + today\'s usage');
   console.log('    tokburn today    detailed breakdown by model');
   console.log('    tokburn live     real-time TUI dashboard');
   console.log('');
-
-  if (addedShellConfig) {
-    console.log('  Run `source ~/' + rcFile + '` to activate, or open a new terminal.');
-    console.log('');
-  }
 
   rl.close();
 }
@@ -262,42 +141,25 @@ async function runInit() {
 function detectEnvironment() {
   const home = process.env.HOME || process.env.USERPROFILE;
   const shell = path.basename(process.env.SHELL || 'bash');
-  const rcFile = shell === 'zsh' ? '.zshrc' : shell === 'fish' ? '.config/fish/config.fish' : '.bashrc';
-  const rcPath = path.join(home, rcFile);
   const claudeDir = path.join(home, '.claude');
   const claudeSettings = path.join(claudeDir, 'settings.json');
   const hasClaudeCode = fs.existsSync(claudeDir);
 
-  return { home, shell, rcFile, rcPath, claudeDir, claudeSettings, hasClaudeCode };
+  return { home, shell, claudeDir, claudeSettings, hasClaudeCode };
 }
 
 function configurePlan(plan) {
   setConfig({ plan, limits: PLANS });
 }
 
-function configureProxy() {
-  if (isRunning()) {
-    return { success: true, message: 'already running', pid: null };
-  }
-  return startDaemon();
-}
-
-function configureShell(rcPath, port) {
-  const envLine = `export ANTHROPIC_BASE_URL=http://127.0.0.1:${port}`;
-  const existing = fs.existsSync(rcPath) ? fs.readFileSync(rcPath, 'utf8') : '';
-  if (existing.includes('ANTHROPIC_BASE_URL')) {
-    return { added: false, reason: 'already exists' };
-  }
-  fs.appendFileSync(rcPath, '\n# tokburn proxy\n' + envLine + '\n');
-  return { added: true };
-}
-
-function configureStatusLine(selectedModules) {
+function configureStatusLine(selectedModules, elements) {
   const home = process.env.HOME || process.env.USERPROFILE;
   const claudeDir = path.join(home, '.claude');
   const claudeSettings = path.join(claudeDir, 'settings.json');
 
-  setConfig({ statusline_modules: selectedModules });
+  const update = { statusline_modules: selectedModules };
+  if (elements) update.statusline_elements = elements;
+  setConfig(update);
 
   const srcScript = path.join(__dirname, 'statusline.js');
   const destScript = path.join(claudeDir, 'tokburn-statusline.js');
@@ -320,98 +182,18 @@ function configureStatusLine(selectedModules) {
   fs.writeFileSync(claudeSettings, JSON.stringify(settings, null, 2) + '\n');
 }
 
-function installSkills() {
-  const home = process.env.HOME || process.env.USERPROFILE;
-  const skillsDir = path.join(home, '.claude', 'skills');
-
-  const skillNames = ['tokburn-check', 'tokburn-plan'];
-  for (const name of skillNames) {
-    const src = path.join(__dirname, 'skills', name, 'SKILL.md');
-    const destDir = path.join(skillsDir, name);
-    if (fs.existsSync(src)) {
-      fs.mkdirSync(destDir, { recursive: true });
-      fs.copyFileSync(src, path.join(destDir, 'SKILL.md'));
-    }
-  }
-  return skillNames.length;
-}
-
-function installHooks() {
-  const home = process.env.HOME || process.env.USERPROFILE;
-  const claudeDir = path.join(home, '.claude');
-  const claudeSettings = path.join(claudeDir, 'settings.json');
-
-  let settings = {};
-  if (fs.existsSync(claudeSettings)) {
-    try { settings = JSON.parse(fs.readFileSync(claudeSettings, 'utf8')); } catch (_) {}
-  }
-
-  if (!settings.hooks) settings.hooks = {};
-  if (!settings.hooks.PreToolUse) settings.hooks.PreToolUse = [];
-
-  // Install pre-read warning hook script
-  const preReadSrc = path.join(__dirname, 'hooks', 'pre-read-warn.sh');
-  const preReadDest = path.join(claudeDir, 'tokburn-pre-read-warn.sh');
-  if (fs.existsSync(preReadSrc)) {
-    fs.copyFileSync(preReadSrc, preReadDest);
-    fs.chmodSync(preReadDest, '755');
-  }
-
-  // Add hook config if not already present
-  const hasPreRead = settings.hooks.PreToolUse.some(function (h) {
-    return h.hooks && h.hooks.some(function (hh) {
-      return hh.command && hh.command.includes('tokburn-pre-read');
-    });
-  });
-  if (!hasPreRead) {
-    settings.hooks.PreToolUse.push({
-      matcher: 'Read',
-      hooks: [{ type: 'command', command: preReadDest }],
-    });
-  }
-
-  if (!fs.existsSync(claudeDir)) {
-    fs.mkdirSync(claudeDir, { recursive: true });
-  }
-  fs.writeFileSync(claudeSettings, JSON.stringify(settings, null, 2) + '\n');
-  return 1;
-}
-
 function uninstallTokburn() {
   const home = process.env.HOME || process.env.USERPROFILE;
 
-  // Remove skills
-  const skillNames = ['tokburn-check', 'tokburn-plan'];
-  for (const name of skillNames) {
-    const dir = path.join(home, '.claude', 'skills', name);
-    if (fs.existsSync(dir)) {
-      fs.rmSync(dir, { recursive: true });
-    }
-  }
+  // Remove statusline script
+  const statuslineFile = path.join(home, '.claude', 'tokburn-statusline.js');
+  if (fs.existsSync(statuslineFile)) fs.unlinkSync(statuslineFile);
 
-  // Remove hook scripts and statusline
-  const hookFiles = ['tokburn-pre-read-warn.sh', 'tokburn-statusline.js'];
-  for (const f of hookFiles) {
-    const p = path.join(home, '.claude', f);
-    if (fs.existsSync(p)) fs.unlinkSync(p);
-  }
-
-  // Remove tokburn entries from settings.json
+  // Remove tokburn statusLine from settings.json
   const claudeSettings = path.join(home, '.claude', 'settings.json');
   if (fs.existsSync(claudeSettings)) {
     try {
       const settings = JSON.parse(fs.readFileSync(claudeSettings, 'utf8'));
-      if (settings.hooks) {
-        for (const event of Object.keys(settings.hooks)) {
-          settings.hooks[event] = settings.hooks[event].filter(function (h) {
-            return !(h.hooks && h.hooks.some(function (hh) {
-              return hh.command && hh.command.includes('tokburn');
-            }));
-          });
-          if (settings.hooks[event].length === 0) delete settings.hooks[event];
-        }
-        if (Object.keys(settings.hooks).length === 0) delete settings.hooks;
-      }
       if (settings.statusLine && settings.statusLine.command && settings.statusLine.command.includes('tokburn')) {
         delete settings.statusLine;
       }
@@ -420,13 +202,11 @@ function uninstallTokburn() {
   }
 
   // Clean config
-  const tokburnDir = path.join(home, '.tokburn');
-  const configFile = path.join(tokburnDir, 'config.json');
+  const configFile = path.join(home, '.tokburn', 'config.json');
   if (fs.existsSync(configFile)) fs.unlinkSync(configFile);
 }
 
 module.exports = {
-  runInit, detectEnvironment, configurePlan, configureProxy,
-  configureShell, configureStatusLine, installSkills, installHooks,
-  uninstallTokburn, PLANS
+  runInit, detectEnvironment, configurePlan,
+  configureStatusLine, uninstallTokburn, PLANS
 };

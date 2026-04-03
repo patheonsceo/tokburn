@@ -20,9 +20,9 @@
 </div>
 
 ```
-Opus 4.6 (1M context) | ctx 31% | tokburn (main*) | 224.9K tok | $38.86 | ~8.6K/min
-current  ●●●●●○○○○○  48%  ↻ 51min
-weekly   ●●●●●○○○○○  48%  ↻ Fri 12:30PM
+Opus 4.6 (1M context)·Max █████░░░░░░░░░░░░░░░ 25% | main* | $18.79
+5h 6% 3h25m→14:20 | 7d 64% 1d16h→04/05 | 🔥$7.6/h
+$18.79 D:13.9K/106.9K | +1260/-872 | tokburn
 ```
 
 Works with: **Claude Code** | Codex, Cursor -- coming soon
@@ -31,35 +31,38 @@ Works with: **Claude Code** | Codex, Cursor -- coming soon
 
 ## The Problem
 
-Claude Pro gives you a 5-hour usage window. You don't know how much you've used until you hit the wall mid-conversation and lose your entire context. Saying "hi" to Claude Code can cost 3% of your session. Refactoring a file? Maybe 15%. You have no idea until it's too late.
+Claude Pro/Max gives you a 5-hour usage window. You don't know how much you've used until you hit the wall mid-conversation and lose your entire context. Saying "hi" to Claude Code can cost 3% of your session. Refactoring a file? Maybe 15%. You have no idea until it's too late.
 
-The API is the same story -- Anthropic returns token counts per-request, but nobody tracks the running total. You burn through budget blind.
-
-**tokburn fixes both.**
+**tokburn fixes this.**
 
 ---
 
 ## Table of Contents
 
-- [For Claude Code users (CLI)](#for-claude-code-users) -- npm package with status line, live TUI, cost tracking
+- [For Claude Code users (CLI)](#for-claude-code-users) -- rich status line, analytics commands, zero config
 - [For claude.ai users (Extension)](#for-claudeai-users) -- Chrome extension with floating pill overlay
 - [How it works](#how-it-works) -- architecture in 30 seconds
-- [Benchmarks](#benchmarks) -- real performance numbers
 - [Privacy](#privacy) -- everything stays on your machine
 
 ---
 
 ## For Claude Code Users
 
-> `npm i -g tokburn && tokburn init` -- that's it.
+> `npm i -g tokburn && tokburn init` -- that's it. No proxy. No env vars. Nothing to break.
 
-tokburn adds a **live status line** to Claude Code that shows your token usage, rate limits, cost, and burn rate -- updated after every request.
+tokburn adds a **rich, colorful status line** to Claude Code showing your token usage, rate limits, burn rate, cost, and git stats. Updated after every response.
 
 ```
-  Opus 4.6 | ctx 13% | tokburn (main*) | $1.95
-  current  ●●○○○○○○○○  9%  ↻ 3hr 32min
-  weekly   ●●●●○○○○○○  45% ↻ Fri 12:30PM
+Opus 4.6 (1M context)·Max █████░░░░░░░░░░░░░░░ 25% | main* | $18.79
+5h 6% 3h25m→14:20 | 7d 64% 1d16h→04/05 | 🔥$7.6/h
+$18.79 D:13.9K/106.9K | +1260/-872 | tokburn
 ```
+
+**Line 1:** Model, plan, context window bar, git branch, session cost
+**Line 2:** 5-hour rate limit, 7-day rate limit, burn rate ($/hr)
+**Line 3:** Cost + token counts, lines added/removed, directory
+
+Colors: model in cyan, plan in green, branch in magenta, rate limits color-coded by usage (green/yellow/red), added lines green, removed lines red.
 
 ### Quick Start
 
@@ -68,150 +71,103 @@ npm i -g tokburn
 tokburn init
 ```
 
-The wizard detects your shell and Claude Code installation, then configures everything:
+The wizard has 2 steps:
+
+1. Pick your plan (Pro / Max / API)
+2. Configure status line (Recommended / Minimal / Custom / Skip)
+
+That's it. No proxy daemon, no shell config, no env vars. tokburn reads Claude Code's native session data.
+
+### Custom Status Line
+
+Pick **Custom** in the init wizard to toggle individual elements:
 
 ```
-  tokburn setup
-  ───────────────────────────────────
+  Customize your status line
 
-  Detected: zsh shell, Claude Code installed
+  ↑↓ navigate  space toggle  enter confirm
 
-  [1/4] Which Claude plan are you on?
-        1) Pro       ~500K tokens / 5hr window
-        2) Max       ~2M tokens / 5hr window
-        3) API only  (no plan limits)
+  LINE 1
+  [x] Model + context     Opus 4.6 (1M context)
+  [x] Plan tier            ·Max
+  [x] Context bar          ██████░░░░░░░░░░░░░░ 31%
+  [x] Git branch           main*
+  [x] Session cost         $3.69
 
-  [2/4] Start the proxy daemon?
-  [3/4] Add ANTHROPIC_BASE_URL to ~/.zshrc?
-  [4/4] Configure Claude Code status line?
+  LINE 2
+  [x] 5hr rate limit       5h 27% 3h25m→10:00
+  [x] 7day rate limit      7d 75% 1d16h→04/05
+  [x] Burn rate            🔥$4.9/h
 
-        1) Recommended   model | ctx% | repo | limits | cost
-        2) Minimal       model | current rate limit
-        3) Full          everything including burn rate
-        4) Custom        pick your own modules
+  LINE 3
+  [x] Token counts         $3.69 D:37K/152K
+  [x] Lines changed        +156/-23
+  [x] Directory            tokburn
 
-  ───────────────────────────────────
-  Done. tokburn is ready.
+  ╭──────────────────────────────────────────────────╮
+  │ Live preview updates as you toggle               │
+  ╰──────────────────────────────────────────────────╯
 ```
 
-### Status Line Presets
-
-You pick what shows up. Three presets, or build your own:
-
-**Recommended** -- the essentials:
-```
-  Opus 4.6 | ctx 13% | tokburn (main*) | $1.95
-  current  ●●○○○○○○○○  9%  ↻ 3hr 32min
-  weekly   ●●●●○○○○○○  45% ↻ Fri 12:30PM
-```
-
-**Minimal** -- just the limit:
-```
-  Opus 4.6 | ctx 13%
-  current  ●●○○○○○○○○  9%  ↻ 3hr 32min
-```
-
-**Full** -- everything:
-```
-  Opus 4.6 | ctx 13% | tokburn (main*) | 142.8K tok | $1.95 | ~2.1K/min
-  current  ●●○○○○○○○○  9%  ↻ 3hr 32min
-  weekly   ●●●●○○○○○○  45% ↻ Fri 12:30PM
-```
-
-**Custom** -- toggle individual modules on/off:
-```
-  Status line modules:
-
-    [x] 1. Model + context      Opus 4.6 | ctx 13%
-    [x] 2. Repo + branch        tokburn (master*)
-    [x] 3. Current rate limit   ○○○○○○○○○○ 9% 3hr 32min
-    [x] 4. Weekly rate limit    ●●●●○○○○○○ 45% Fri 12:30PM
-    [ ] 5. Token count          142.8K tok
-    [x] 6. Cost estimate        $1.95
-    [ ] 7. Burn rate            ~2.1K/min
-
-  Toggle (1-7), or press enter to confirm:
-```
+Toggle elements off and they disappear from the preview. Toggle off all of Line 3 and it disappears entirely. 11 individually configurable elements.
 
 ### CLI Commands
 
 | Command | What it does |
 |---|---|
-| `tokburn init` | Interactive setup wizard -- configures everything |
-| `tokburn start` | Launch proxy daemon on localhost:4088 |
-| `tokburn stop` | Stop the proxy |
-| `tokburn status` | Proxy status + quick summary |
+| `tokburn init` | Interactive setup wizard |
+| `tokburn status` | Config summary + today's usage |
 | `tokburn today` | Today's breakdown by model with costs |
 | `tokburn week` | 7-day ASCII table |
-| `tokburn live` | Real-time TUI dashboard (like htop for tokens) |
-| `tokburn reset` | Clear today's data |
+| `tokburn live` | Real-time TUI dashboard |
+| `tokburn scan` | Analyze all Claude Code log history |
 | `tokburn export` | Dump all data as CSV |
-| `tokburn scan` | Parse Claude Code's own log files |
+| `tokburn reset` | Clear cached data |
+| `tokburn init --remove` | Uninstall tokburn from Claude Code |
 
 ### `tokburn today`
 
 ```
-  tokburn -- Today (2026-03-31)
+  tokburn -- Today (2026-04-03)
   ─────────────────────────────────────────
-  Total Tokens    | 142,850
-  Input           | 98,200
-  Output          | 44,650
-  Requests        | 23
-  Est. Cost       | $0.42
+  Total Tokens    | 54,023
+  Input           | 6,014
+  Output          | 48,009
+  Requests        | 207
+  Est. Cost       | $3.69
 
   By Model:
-  claude-sonnet-4       |     89,200 in |     31,400 out | $0.28
-  claude-haiku-4        |      9,000 in |     13,250 out | $0.06
+  claude-opus-4-6       |      6,014 in |     48,009 out | $3.69
 ```
 
-### `tokburn live`
-
-Real-time dashboard. Open it in a split pane next to Claude Code:
+### `tokburn week`
 
 ```
-  ┌──────────────────────────────────────────────────┐
-  | tokburn live  *  14:32:07                        |
-  |                                                  |
-  |   ●●●●●●●●●●●●●●●●●●●●●○○○○○○○○○               |
-  |   74% of 5hr limit  ~1hr 18min remaining         |
-  |                                                  |
-  |   Input Tokens            98,200                 |
-  |   Output Tokens           44,650                 |
-  |   Total Tokens           142,850                 |
-  |   Requests                    23                 |
-  |                                                  |
-  |   Burn Rate          2,847 tok/min               |
-  |   Est. Cost                $0.42                 |
-  |                                                  |
-  |   Recent Requests                                |
-  |   ──────────────────────────────────────────     |
-  |   sonnet-4          1,240 tok  3s ago            |
-  |   sonnet-4            890 tok  12s ago           |
-  |   haiku-4             320 tok  45s ago           |
-  └──────────────────────────────────────────────────┘
+  tokburn -- Last 7 Days
+  ──────────────────────────────────────────────────────────
+  Date        |      Input |     Output |      Total |     Cost
+  ──────────────────────────────────────────────────────────
+  2026-03-28  |        105 |     53,309 |     53,414 |    $4.00
+  2026-03-29  |     18,630 |     44,644 |     63,274 |    $2.83
+  2026-03-30  |     80,327 |    221,339 |    301,666 |   $13.13
+  2026-03-31  |     74,282 |    437,760 |    512,042 |   $30.64
+  2026-04-01  |      4,898 |    160,145 |    165,043 |   $11.95
+  2026-04-02  |     25,771 |    259,054 |    284,825 |   $17.46
+  2026-04-03  |      6,015 |     48,088 |     54,103 |    $3.70
+  ──────────────────────────────────────────────────────────
+  Total       |    210,028 |  1,224,339 |  1,434,367 |   $83.70
 ```
 
-### Task Cards
-
-After each completed task, see exactly what it cost:
+### `tokburn scan`
 
 ```
-  > Refactored auth middleware  12.4K tok  $0.04  87% left
-```
+  Scanning Claude Code logs in: ~/.claude/projects
 
-Expand for the full breakdown:
-
-```
-  v Refactored auth middleware
-  ┌──────────────────────────────────────────────────┐
-  |  This Task              Session Total             |
-  |  In:  8,200 (2K cached)     In:  142,800          |
-  |  Out: 4,200                 Out:  58,200           |
-  |  Cost: $0.04                Cost: $1.95            |
-  |                                                    |
-  |  ██████████████████████░░░░░░░░  74% of 5hr limit  |
-  |  ~1hr 18min remaining  23 requests today           |
-  └──────────────────────────────────────────────────┘
+  Found 17,405 usage entries
+  Input Tokens:  1,461,990
+  Output Tokens: 2,573,787
+  Total Tokens:  4,035,777
+  Est. Cost:     $186.43
 ```
 
 ---
@@ -227,75 +183,17 @@ Expand for the full breakdown:
 3. Click **Load unpacked** and select the `tokburn-ext/` folder
 4. Open [claude.ai](https://claude.ai) -- the pill appears automatically
 
-### What You See
-
-A floating pill in the bottom-right corner of claude.ai. Color-coded: green when you're fine, amber when you should be aware, red when you're close to the limit.
-
-Click it to expand the full dashboard:
-
-```
-  ┌─────────────────────────────────────┐
-  |  tokburn            2026-03-31      |
-  |                                     |
-  |  ~58% of daily limit   500K limit   |
-  |  ████████████████░░░░░░░░░░░░░░░░   |
-  |                                     |
-  |  ┌─────────┐  ┌──────────┐         |
-  |  | Input   |  | Output   |         |
-  |  | 42.1K   |  | 15.3K    |         |
-  |  └─────────┘  └──────────┘         |
-  |  ┌─────────┐  ┌──────────┐         |
-  |  | Total   |  | Requests |         |
-  |  | 57.4K   |  | 23       |         |
-  |  └─────────┘  └──────────┘         |
-  |                                     |
-  |  Burn Rate         ~2.1K tok/min    |
-  |                                     |
-  |  Session Log                        |
-  |  conv_abc123...          14.2K      |
-  |  conv_def456...           8.7K      |
-  └─────────────────────────────────────┘
-                          57.4K  <-- pill
-```
-
-Click the extension icon for a 7-day history chart and settings (daily limit, pill toggle, data reset).
-
-See [tokburn-ext/README.md](./tokburn-ext/README.md) for technical details.
+See [tokburn-ext/README.md](./tokburn-ext/README.md) for details.
 
 ---
 
 ## How It Works
 
-**CLI proxy** -- tokburn runs a tiny HTTP proxy on localhost:4088. You point `ANTHROPIC_BASE_URL` at it. Every request passes through transparently to api.anthropic.com. After each response is delivered, tokburn asynchronously extracts the token counts from the API response and logs them. Your workflow is never slowed down.
+**Status line** -- Claude Code sends session data (model, rate limits, cost, context usage) to a status line script via stdin on every update. tokburn's script parses this JSON and renders the formatted output. No proxy, no env vars, no interception. Just reads Claude Code's native data.
 
-**Chrome extension** -- tokburn patches `window.fetch` on claude.ai using a cloned response stream. It parses SSE events for token usage data. The original response is never touched. Everything is stored in `chrome.storage.local`.
+**CLI commands** -- `today`, `week`, `scan`, and `export` read Claude Code's own JSONL session logs from `~/.claude/projects/`. No separate data store needed.
 
-**Status line** -- Claude Code sends session data (model, rate limits, cost, context usage) to a status line script on every update. tokburn's script formats this data with dot-bar indicators and your chosen modules. No proxy required for the status line -- it reads Claude Code's native data.
-
-```
-  Client  --->  tokburn proxy  --->  api.anthropic.com
-                     |
-                     |  (async, after response delivered)
-                     v
-               ~/.tokburn/usage.jsonl
-```
-
----
-
-## Benchmarks
-
-Real measurements from the test suite (62 tests, `npm test`):
-
-| Metric | Result |
-|---|---|
-| Proxy overhead (JSON) | **0.26ms** avg |
-| SSE TTFB overhead | **0.36ms** |
-| Throughput | **1,198 req/s** |
-| SSE token parsing | **100% exact** from API usage fields |
-| Fallback estimation | **avg 17.8% error** (chars/4 heuristic) |
-| Cost calculation | **Exact match** to Anthropic pricing |
-
-The proxy is invisible. Sub-millisecond overhead. 62 tests verify accuracy on every commit.
+**Chrome extension** -- Patches `window.fetch` on claude.ai using a cloned response stream. Parses SSE events for token usage data. The original response is never touched. Everything is stored in `chrome.storage.local`.
 
 ---
 
@@ -303,10 +201,11 @@ The proxy is invisible. Sub-millisecond overhead. 62 tests verify accuracy on ev
 
 **Your data never leaves your machine.**
 
-- The CLI proxy binds to `localhost` only -- nothing is forwarded anywhere except the original Anthropic API
-- The Chrome extension makes zero external requests -- everything in `chrome.storage.local`
+- The status line reads Claude Code's native JSON from stdin. No network requests.
+- CLI commands read local JSONL log files. No cloud, no API calls.
+- The Chrome extension makes zero external requests. Everything in `chrome.storage.local`.
 - No analytics. No telemetry. No accounts. No cloud.
-- All code is open source. Read every line yourself: [tokburn-cli/](./tokburn-cli/) and [tokburn-ext/](./tokburn-ext/)
+- All code is open source. Read every line: [tokburn-cli/](./tokburn-cli/) and [tokburn-ext/](./tokburn-ext/)
 
 ---
 

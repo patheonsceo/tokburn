@@ -140,20 +140,24 @@ function formatWeek(entriesByDay) {
   return lines.join('\n');
 }
 
-function formatStatus(running, todaySummary) {
+function formatStatus(todaySummary) {
+  const { getConfig } = require('./config');
+  const conf = getConfig();
+  const plan = conf.plan || '(not set)';
+  const modules = conf.statusline_modules || [];
+
   const lines = [];
   lines.push('');
-  if (running) {
-    lines.push('  tokburn proxy: \x1b[32m\u25CF running\x1b[0m');
-  } else {
-    lines.push('  tokburn proxy: \x1b[90m\u25CB stopped\x1b[0m');
-  }
+  lines.push(`  tokburn`);
+  lines.push('  ' + '\u2500'.repeat(35));
+  lines.push(`  Plan:        ${plan}`);
+  lines.push(`  Status line: ${modules.length > 0 ? modules.length + ' modules' : 'not configured'}`);
 
   if (todaySummary) {
     const totalTokens = (todaySummary.input || 0) + (todaySummary.output || 0);
-    lines.push(`  Today: ${fmt(totalTokens)} tokens (${fmt(todaySummary.requests || 0)} requests) \u2022 ${fmtCost(todaySummary.cost || 0)}`);
+    lines.push(`  Today:       ${fmt(totalTokens)} tokens (${fmt(todaySummary.requests || 0)} requests) \u2022 ${fmtCost(todaySummary.cost || 0)}`);
   } else {
-    lines.push('  Today: no usage recorded');
+    lines.push('  Today:       no usage recorded');
   }
   lines.push('');
 

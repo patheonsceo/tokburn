@@ -1,6 +1,6 @@
 {
   "name": "tokburn",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "description": "See exactly how fast you're burning tokens and money across Claude Code sessions",
   "main": "cli.js",
   "bin": {
@@ -16,13 +16,7 @@
     "config.js",
     "init.js",
     "init-ui.mjs",
-    "card.js",
     "statusline.js",
-    "statusline.sh",
-    "skills/tokburn-check/SKILL.md",
-    "skills/tokburn-plan/SKILL.md",
-    "hooks/pre-read-warn.sh",
-    "hooks/stop-context-check.sh",
     "README.md",
     "LICENSE"
   ],
@@ -41,8 +35,7 @@
   ],
   "scripts": {
     "benchmark": "node test/benchmark.js",
-    "test": "node test/benchmark.js && node test/test-card.js",
-    "test:card": "node test/test-card.js",
+    "test": "node test/benchmark.js",
     "prepublishOnly": "npm test"
   },
   "repository": {

@@ -11,9 +11,9 @@ import chalk from 'chalk';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { detectEnvironment, configurePlan, configureProxy, configureShell, configureStatusLine, installSkills, installHooks, PLANS } = require('./init.js');
+const { detectEnvironment, configurePlan, configureStatusLine, PLANS } = require('./init.js');
 const { getConfig } = require('./config.js');
-const { PRESETS, MODULE_LIST } = require('./statusline.js');
+const { PRESETS, MODULE_LIST, RICH_ELEMENTS, RICH_PRESETS, ALL_RICH_KEYS } = require('./statusline.js');
 
 const pkg = require('./package.json');
 
@@ -45,23 +45,45 @@ function completedLine(label, value) {
 
 function previewForPreset(presetKey) {
   if (presetKey === 'skip') return '(no status line)';
-  const modules = PRESETS[presetKey];
-  if (!modules) return '';
-  const lineOne = [];
-  const extra = [];
-  for (const key of modules) {
-    const info = MODULE_LIST.find(m => m.key === key);
-    if (!info) continue;
-    if (key === 'current_limit' || key === 'weekly_limit') {
-      extra.push(info.example);
-    } else {
-      lineOne.push(info.example);
-    }
+  if (presetKey === 'custom') return '(choose your own modules)';
+  const preset = RICH_PRESETS[presetKey];
+  if (!preset) return '';
+  return buildPreviewFromElements(new Set(preset));
+}
+
+function buildPreviewFromElements(enabledSet) {
+  const SEP = chalk.dim(' | ');
+  const lines = [];
+
+  // Line 1
+  const l1 = [];
+  if (enabledSet.has('model')) {
+    let m = chalk.cyan('Opus 4.6 (1M context)');
+    if (enabledSet.has('plan')) m += chalk.dim('\u00b7') + chalk.green('Max');
+    l1.push(m);
+  } else if (enabledSet.has('plan')) {
+    l1.push(chalk.green('Max'));
   }
-  let out = '';
-  if (lineOne.length > 0) out += lineOne.join(' | ');
-  for (const e of extra) out += '\n' + e;
-  return out;
+  if (enabledSet.has('context_bar')) l1.push(chalk.green('\u2588\u2588\u2588\u2588\u2588\u2588') + chalk.dim('\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591') + ' 31%');
+  if (enabledSet.has('branch')) l1.push(chalk.magenta('main*'));
+  if (enabledSet.has('session_cost')) l1.push('$3.69');
+  if (l1.length > 0) lines.push(l1.join(SEP));
+
+  // Line 2
+  const l2 = [];
+  if (enabledSet.has('limit_5h')) l2.push(chalk.dim('5h ') + chalk.green('27%') + chalk.dim(' 3h25m\u219210:00'));
+  if (enabledSet.has('limit_7d')) l2.push(chalk.dim('7d ') + chalk.yellow('75%') + chalk.dim(' 1d16h\u219204/05'));
+  if (enabledSet.has('burn_rate')) l2.push('\uD83D\uDD25' + chalk.dim('$4.9/h'));
+  if (l2.length > 0) lines.push(l2.join(SEP));
+
+  // Line 3
+  const l3 = [];
+  if (enabledSet.has('tokens')) l3.push('$3.69 D:37K/152K');
+  if (enabledSet.has('lines')) l3.push(chalk.green('+156') + '/' + chalk.red('-23'));
+  if (enabledSet.has('directory')) l3.push('tokburn');
+  if (l3.length > 0) lines.push(l3.join(SEP));
+
+  return lines.join('\n');
 }
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -70,9 +92,8 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 const PHASE_WELCOME = 'welcome';
 const PHASE_PLAN = 'plan';
-const PHASE_PROXY = 'proxy';
-const PHASE_SHELL = 'shell';
 const PHASE_STATUSLINE = 'statusline';
+const PHASE_CUSTOMIZE = 'customize';
 const PHASE_PROCESSING = 'processing';
 const PHASE_DONE = 'done';
 
@@ -85,9 +106,8 @@ function App() {
 
   // User choices
   const [plan, setPlan] = useState(null);
-  const [wantProxy, setWantProxy] = useState(null);
-  const [wantShell, setWantShell] = useState(null);
   const [statusPreset, setStatusPreset] = useState(null);
+  const [customElements, setCustomElements] = useState(null);
 
   // Processing state
   const [taskIndex, setTaskIndex] = useState(-1);
@@ -100,7 +120,7 @@ function App() {
       const detected = detectEnvironment();
       setEnv(detected);
     } catch (e) {
-      setEnv({ home: '', shell: 'unknown', rcFile: '', rcPath: '', claudeDir: '', claudeSettings: '', hasClaudeCode: false });
+      setEnv({ home: '', shell: 'unknown', claudeDir: '', claudeSettings: '', hasClaudeCode: false });
     }
   }, []);
 
@@ -169,58 +189,18 @@ function App() {
       },
     });
 
-    if (wantProxy) {
-      tasks.push({
-        key: 'proxy',
-        label: 'Proxy started',
-        run: () => {
-          const result = configureProxy();
-          return { pid: result.pid, message: result.message };
-        },
-      });
-    }
+    // Determine elements to save
+    const finalPreset = statusPreset;
+    const isRich = finalPreset && finalPreset !== 'skip';
 
-    if (wantShell && env && env.hasClaudeCode) {
-      tasks.push({
-        key: 'shell',
-        label: 'Shell configured',
-        run: () => {
-          const config = getConfig();
-          const result = configureShell(env.rcPath, config.port);
-          return { added: result.added, reason: result.reason };
-        },
-      });
-    }
-
-    if (statusPreset && statusPreset !== 'skip' && env && env.hasClaudeCode) {
+    if (isRich && env && env.hasClaudeCode) {
       tasks.push({
         key: 'statusline',
         label: 'Status line configured',
         run: () => {
-          const modules = PRESETS[statusPreset];
-          configureStatusLine(modules);
-          return { count: modules.length };
-        },
-      });
-    }
-
-    // Always install skills and hooks if Claude Code is present
-    if (env && env.hasClaudeCode) {
-      tasks.push({
-        key: 'skills',
-        label: 'Skills installed',
-        run: () => {
-          const count = installSkills();
-          return { count };
-        },
-      });
-
-      tasks.push({
-        key: 'hooks',
-        label: 'Hooks configured',
-        run: () => {
-          const count = installHooks();
-          return { count };
+          const elements = customElements || RICH_PRESETS[finalPreset] || ALL_RICH_KEYS;
+          configureStatusLine(['rich'], elements);
+          return { count: elements.length };
         },
       });
     }
@@ -232,23 +212,6 @@ function App() {
 
   const handlePlanSelect = useCallback((value) => {
     setPlan(value);
-    setPhase(PHASE_PROXY);
-  }, []);
-
-  const handleProxySelect = useCallback((value) => {
-    setWantProxy(value === 'yes');
-    if (env && env.hasClaudeCode) {
-      setPhase(PHASE_SHELL);
-    } else {
-      // Skip shell and statusline if no Claude Code
-      setWantShell(false);
-      setStatusPreset('skip');
-      setPhase(PHASE_PROCESSING);
-    }
-  }, [env]);
-
-  const handleShellSelect = useCallback((value) => {
-    setWantShell(value === 'yes');
     if (env && env.hasClaudeCode) {
       setPhase(PHASE_STATUSLINE);
     } else {
@@ -258,7 +221,17 @@ function App() {
   }, [env]);
 
   const handleStatusLineSelect = useCallback((value) => {
-    setStatusPreset(value);
+    if (value === 'custom') {
+      setStatusPreset('custom');
+      setPhase(PHASE_CUSTOMIZE);
+    } else {
+      setStatusPreset(value);
+      setPhase(PHASE_PROCESSING);
+    }
+  }, []);
+
+  const handleCustomizeConfirm = useCallback((elements) => {
+    setCustomElements(elements);
     setPhase(PHASE_PROCESSING);
   }, []);
 
@@ -270,8 +243,13 @@ function App() {
     );
   }
 
+  const statusLabel = statusPreset === 'skip' ? 'skipped'
+    : statusPreset === 'custom' ? 'Custom (' + (customElements || ALL_RICH_KEYS).length + ')'
+    : statusPreset ? statusPreset.charAt(0).toUpperCase() + statusPreset.slice(1)
+    : null;
+
   return React.createElement(Box, { flexDirection: 'column', paddingX: 1 },
-    // Logo + header (always shown)
+    // Logo + header
     React.createElement(Box, { flexDirection: 'column' },
       React.createElement(Text, { color: 'yellow' }, LOGO),
       React.createElement(Text, { dimColor: true }, `  token tracking for Claude Code  v${pkg.version}`),
@@ -285,25 +263,19 @@ function App() {
           ? React.createElement(Text, null, ' + ', React.createElement(Text, { color: 'cyan' }, 'Claude Code'))
           : React.createElement(Text, { dimColor: true }, ' (no Claude Code)')
       ),
-      React.createElement(Text, null,
-        '  Works with: ',
-        React.createElement(Text, { color: 'cyan' }, 'Claude Code'),
-        React.createElement(Text, { dimColor: true }, ' | Codex, Cursor -- coming soon')
-      ),
       React.createElement(Newline, null)
     ),
 
     // Completed steps
     plan ? React.createElement(Text, null, completedLine('Plan', PLAN_LABELS[plan])) : null,
-    wantProxy !== null ? React.createElement(Text, null, completedLine('Proxy', wantProxy ? 'start now' : 'skipped')) : null,
-    wantShell !== null ? React.createElement(Text, null, completedLine('Shell', wantShell ? `add to ~/${env.rcFile}` : 'manual')) : null,
-    statusPreset !== null && phase !== PHASE_STATUSLINE ? React.createElement(Text, null, completedLine('Status line', statusPreset === 'skip' ? 'skipped' : `${statusPreset[0].toUpperCase() + statusPreset.slice(1)} (${(PRESETS[statusPreset] || []).length})`)) : null,
+    statusLabel && phase !== PHASE_STATUSLINE && phase !== PHASE_CUSTOMIZE
+      ? React.createElement(Text, null, completedLine('Status line', statusLabel))
+      : null,
 
     // Active phase
     phase === PHASE_PLAN ? React.createElement(PlanStep, { onSelect: handlePlanSelect }) : null,
-    phase === PHASE_PROXY ? React.createElement(ProxyStep, { onSelect: handleProxySelect }) : null,
-    phase === PHASE_SHELL ? React.createElement(ShellStep, { onSelect: handleShellSelect, rcFile: env.rcFile }) : null,
     phase === PHASE_STATUSLINE ? React.createElement(StatusLineStep, { onSelect: handleStatusLineSelect }) : null,
+    phase === PHASE_CUSTOMIZE ? React.createElement(CustomizerStep, { onConfirm: handleCustomizeConfirm }) : null,
     phase === PHASE_PROCESSING ? React.createElement(ProcessingPhase, {
       tasks: buildTaskList(),
       taskIndex,
@@ -312,9 +284,8 @@ function App() {
     }) : null,
     phase === PHASE_DONE ? React.createElement(DoneSummary, {
       plan,
-      wantProxy,
-      wantShell,
       statusPreset,
+      customElements,
       env,
       taskResults,
     }) : null
@@ -325,7 +296,7 @@ function App() {
 
 function PlanStep({ onSelect }) {
   return React.createElement(Box, { flexDirection: 'column', marginTop: 0 },
-    React.createElement(Text, { bold: true }, '  [1/4] Which Claude plan are you on?'),
+    React.createElement(Text, { bold: true }, '  [1/2] Which Claude plan are you on?'),
     React.createElement(Newline, null),
     React.createElement(Box, { paddingLeft: 4 },
       React.createElement(Select, {
@@ -340,67 +311,28 @@ function PlanStep({ onSelect }) {
   );
 }
 
-function ProxyStep({ onSelect }) {
-  return React.createElement(Box, { flexDirection: 'column', marginTop: 0 },
-    React.createElement(Text, { bold: true }, '  [2/4] Start the proxy daemon?'),
-    React.createElement(Text, { dimColor: true }, '        Enables per-request tracking for detailed breakdowns.'),
-    React.createElement(Newline, null),
-    React.createElement(Box, { paddingLeft: 4 },
-      React.createElement(Select, {
-        options: [
-          { label: 'Yes, start now', value: 'yes' },
-          { label: 'No, skip', value: 'no' },
-        ],
-        onChange: onSelect,
-      })
-    )
-  );
-}
-
-function ShellStep({ onSelect, rcFile }) {
-  return React.createElement(Box, { flexDirection: 'column', marginTop: 0 },
-    React.createElement(Text, { bold: true }, `  [3/4] Add ANTHROPIC_BASE_URL to ~/${rcFile}?`),
-    React.createElement(Text, { dimColor: true }, '        Required for the proxy to intercept API calls.'),
-    React.createElement(Newline, null),
-    React.createElement(Box, { paddingLeft: 4 },
-      React.createElement(Select, {
-        options: [
-          { label: 'Yes, add it', value: 'yes' },
-          { label: 'No, I\'ll do it manually', value: 'no' },
-        ],
-        onChange: onSelect,
-      })
-    )
-  );
-}
-
 function StatusLineStep({ onSelect }) {
   const STATUS_OPTIONS = [
-    { label: 'Recommended   model | ctx% | repo | limits | cost', value: 'recommended' },
-    { label: 'Minimal       model | current rate limit', value: 'minimal' },
-    { label: 'Full          everything including burn rate', value: 'full' },
+    { label: 'Recommended   all modules enabled', value: 'recommended' },
+    { label: 'Minimal       model + context + 5hr limit', value: 'minimal' },
+    { label: 'Custom        pick your own modules', value: 'custom' },
     { label: 'Skip', value: 'skip' },
   ];
 
   const [highlightIndex, setHighlightIndex] = useState(0);
 
   useInput((input, key) => {
-    if (key.upArrow) {
-      setHighlightIndex(i => Math.max(0, i - 1));
-    } else if (key.downArrow) {
-      setHighlightIndex(i => Math.min(STATUS_OPTIONS.length - 1, i + 1));
-    } else if (key.return) {
-      onSelect(STATUS_OPTIONS[highlightIndex].value);
-    }
+    if (key.upArrow) setHighlightIndex(i => Math.max(0, i - 1));
+    else if (key.downArrow) setHighlightIndex(i => Math.min(STATUS_OPTIONS.length - 1, i + 1));
+    else if (key.return) onSelect(STATUS_OPTIONS[highlightIndex].value);
   });
 
   const currentPreset = STATUS_OPTIONS[highlightIndex].value;
   const preview = previewForPreset(currentPreset);
 
   return React.createElement(Box, { flexDirection: 'column', marginTop: 0 },
-    React.createElement(Text, { bold: true }, '  [4/4] Configure Claude Code status line?'),
+    React.createElement(Text, { bold: true }, '  [2/2] Configure Claude Code status line?'),
     React.createElement(Newline, null),
-    // Custom select with highlight tracking
     React.createElement(Box, { flexDirection: 'column', paddingLeft: 4 },
       ...STATUS_OPTIONS.map((opt, i) =>
         React.createElement(Text, { key: opt.value },
@@ -410,13 +342,11 @@ function StatusLineStep({ onSelect }) {
         )
       )
     ),
-    React.createElement(Text, { dimColor: true }, '    (arrows to move, enter to confirm)'),
-    // Live preview that updates as user arrows through
+    React.createElement(Newline, null),
     preview ? React.createElement(Box, {
       borderStyle: 'round',
       borderColor: currentPreset === 'skip' ? 'gray' : 'cyan',
       paddingX: 1,
-      marginTop: 1,
       marginLeft: 4,
     },
       React.createElement(Box, { flexDirection: 'column' },
@@ -426,6 +356,101 @@ function StatusLineStep({ onSelect }) {
         )
       )
     ) : null
+  );
+}
+
+// ── Customizer Step ─────────────────────────────────────────────────────────
+
+function CustomizerStep({ onConfirm }) {
+  const [cursor, setCursor] = useState(0);
+  const [enabled, setEnabled] = useState(() => new Set(ALL_RICH_KEYS));
+
+  // Build display rows: line headers + elements
+  const rows = [];
+  let currentLine = 0;
+  for (const el of RICH_ELEMENTS) {
+    if (el.line !== currentLine) {
+      currentLine = el.line;
+      rows.push({ type: 'header', line: el.line });
+    }
+    rows.push({ type: 'element', ...el });
+  }
+
+  // Only count element rows for cursor navigation
+  const elementRows = rows.filter(r => r.type === 'element');
+
+  useInput((input, key) => {
+    if (key.upArrow) {
+      setCursor(c => Math.max(0, c - 1));
+    } else if (key.downArrow) {
+      setCursor(c => Math.min(elementRows.length - 1, c + 1));
+    } else if (input === ' ') {
+      const el = elementRows[cursor];
+      setEnabled(prev => {
+        const next = new Set(prev);
+        if (next.has(el.key)) next.delete(el.key);
+        else next.add(el.key);
+        return next;
+      });
+    } else if (key.return) {
+      onConfirm(Array.from(enabled));
+    }
+  });
+
+  const preview = buildPreviewFromElements(enabled);
+  const LINE_LABELS = { 1: 'LINE 1', 2: 'LINE 2', 3: 'LINE 3' };
+
+  let elementIndex = 0;
+
+  return React.createElement(Box, { flexDirection: 'column', marginTop: 0 },
+    React.createElement(Text, { bold: true }, '  Customize your status line'),
+    React.createElement(Text, { dimColor: true }, '  \u2191\u2193 navigate  space toggle  enter confirm'),
+    React.createElement(Newline, null),
+
+    // Element rows
+    ...rows.map((row, i) => {
+      if (row.type === 'header') {
+        return React.createElement(Text, { key: `h-${row.line}`, dimColor: true, bold: true },
+          '    ' + LINE_LABELS[row.line]
+        );
+      }
+
+      const idx = elementIndex++;
+      const isActive = idx === cursor;
+      const isOn = enabled.has(row.key);
+      const check = isOn ? chalk.green('[x]') : chalk.dim('[ ]');
+      const label = row.label.padEnd(20);
+      const example = chalk.dim(row.example);
+
+      if (isActive) {
+        return React.createElement(Text, { key: row.key },
+          '  ', React.createElement(Text, { color: 'cyan' }, '> '),
+          check, ' ', label, ' ', example
+        );
+      }
+      return React.createElement(Text, { key: row.key },
+        '    ', check, ' ', label, ' ', example
+      );
+    }),
+
+    React.createElement(Newline, null),
+
+    // Live preview
+    enabled.size > 0
+      ? React.createElement(Box, {
+          borderStyle: 'round',
+          borderColor: 'cyan',
+          paddingX: 1,
+          marginLeft: 4,
+        },
+          React.createElement(Box, { flexDirection: 'column' },
+            React.createElement(Text, { dimColor: true }, 'Live preview:'),
+            ...preview.split('\n').map((line, j) =>
+              React.createElement(Text, { key: `cpreview-${j}-${enabled.size}` }, line)
+            )
+          )
+        )
+      : React.createElement(Text, { dimColor: true, color: 'yellow' }, '    No modules selected')
   );
 }
 
@@ -441,20 +466,16 @@ function ProcessingPhase({ tasks, taskIndex, taskResults, progress }) {
     React.createElement(Newline, null),
     ...tasks.map((task, i) => {
       if (i < taskIndex) {
-        // Done
         return React.createElement(Text, { key: task.key },
           '  ', React.createElement(Text, { color: 'green' }, '\u2713'),
-          ' ', task.label,
-          taskResults[task.key] && taskResults[task.key].pid ? ` (PID ${taskResults[task.key].pid})` : ''
+          ' ', task.label
         );
       } else if (i === taskIndex) {
-        // Active
         return React.createElement(Box, { key: task.key },
           React.createElement(Text, null, '  '),
           React.createElement(Spinner, { label: task.label })
         );
       } else {
-        // Pending
         return React.createElement(Text, { key: task.key, dimColor: true },
           '  \u25CB ', task.label
         );
@@ -465,37 +486,23 @@ function ProcessingPhase({ tasks, taskIndex, taskResults, progress }) {
 
 // ── Done Summary ────────────────────────────────────────────────────────────
 
-function DoneSummary({ plan, wantProxy, wantShell, statusPreset, env, taskResults }) {
-  const proxyResult = taskResults.proxy || {};
-  const shellResult = taskResults.shell || {};
-
-  const proxyDesc = !wantProxy ? 'skipped'
-    : proxyResult.pid ? `started :${proxyResult.pid}`
-    : proxyResult.message || 'started';
-
-  const shellDesc = !wantShell ? 'skipped'
-    : shellResult.added ? `added to ~/${env.rcFile}`
-    : shellResult.reason === 'already exists' ? 'already in rc'
-    : 'configured';
-
+function DoneSummary({ plan, statusPreset, customElements, env, taskResults }) {
+  const elCount = customElements ? customElements.length : ALL_RICH_KEYS.length;
   const statusDesc = !statusPreset || statusPreset === 'skip' ? 'skipped'
-    : `${statusPreset[0].toUpperCase() + statusPreset.slice(1)} (${(PRESETS[statusPreset] || []).length})`;
+    : statusPreset === 'custom' ? 'Custom (' + elCount + ' modules)'
+    : statusPreset.charAt(0).toUpperCase() + statusPreset.slice(1) + ' (' + elCount + ' modules)';
 
   return React.createElement(Box, { flexDirection: 'column', marginTop: 1 },
     React.createElement(Text, { dimColor: true }, `  ${'─'.repeat(2)} Setup complete ${'─'.repeat(25)}`),
     React.createElement(Newline, null),
     React.createElement(Text, null, completedLine('Plan', PLAN_LABELS[plan])),
-    React.createElement(Text, null, completedLine('Proxy', proxyDesc)),
-    React.createElement(Text, null, completedLine('Shell', shellDesc)),
     React.createElement(Text, null, completedLine('Status line', statusDesc)),
-    env.hasClaudeCode ? React.createElement(Text, null, completedLine('Skills', '/tokburn-check, /tokburn-plan')) : null,
-    env.hasClaudeCode ? React.createElement(Text, null, completedLine('Hooks', 'large file warning')) : null,
     React.createElement(Newline, null),
     React.createElement(Text, { bold: true }, '  Try these:'),
-    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, 'tokburn status'), '    check everything'),
-    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, '/tokburn-check'), '    session health + tips'),
-    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, '/tokburn-plan src/'), '  estimate task cost'),
-    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, 'tokburn live'), '      real-time dashboard'),
+    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, 'tokburn status'), '   config + today\'s usage'),
+    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, 'tokburn today'), '    detailed breakdown by model'),
+    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, 'tokburn live'), '     real-time TUI dashboard'),
+    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, 'tokburn scan'), '     analyze all Claude Code logs'),
     React.createElement(Newline, null)
   );
 }
