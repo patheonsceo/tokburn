@@ -492,6 +492,8 @@ function renderSprite(pixels) {
     padded.push(new Array(width).fill(null));
   }
 
+  // First pass: check which columns ever have colored pixels.
+  // Use this to know the sprite's "occupied" columns for consistent padding.
   const height = padded.length;
   const rows = [];
   for (let y = 0; y < height; y += 2) {

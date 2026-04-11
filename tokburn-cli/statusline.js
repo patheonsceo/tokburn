@@ -392,14 +392,23 @@ if (require.main === module) {
 
   // Join sprite + divider + text side by side
   const divider = DIM + ' \u2502 ' + RESET;
-  // Use RESET prefix to prevent leading-space stripping by terminal/renderer
-  const emptySprite = RESET + ' '.repeat(spriteWidth);
   const outputLines = [];
+
+  // Find the first sprite row with content to measure its visual width
+  // Then build a padding string that uses the same width for empty rows
+  let padStr = ' '.repeat(spriteWidth);
+  for (const sr of spriteRows) {
+    if (sr && sr.trim() !== '') {
+      // Count visible characters (strip ANSI codes)
+      const visWidth = sr.replace(/\x1b\[[0-9;]*m/g, '').length;
+      padStr = ' '.repeat(visWidth);
+      break;
+    }
+  }
 
   for (let i = 0; i < Math.max(spriteRows.length, textLines.length); i++) {
     let spr = spriteRows[i];
-    // If sprite row is all spaces (empty row), use anchored padding
-    if (!spr || spr.trim() === '') spr = emptySprite;
+    if (!spr || spr.trim() === '') spr = padStr;
     const txt = textLines[i] || '';
     outputLines.push(spr + divider + txt);
   }
