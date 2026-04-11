@@ -35,26 +35,26 @@ test('getLevel(0) => level 1, stage 1', () => {
   assert.strictEqual(r.stage, 1);
 });
 
-test('getLevel(100) => level 2, stage 1', () => {
-  const r = getLevel(100);
+test('getLevel(500) => level 2, stage 1', () => {
+  const r = getLevel(500);
   assert.strictEqual(r.level, 2);
   assert.strictEqual(r.stage, 1);
 });
 
-test('getLevel(1150) => level 5, stage 2', () => {
-  const r = getLevel(1150);
+test('getLevel(5000) => level 5, stage 2', () => {
+  const r = getLevel(5000);
   assert.strictEqual(r.level, 5);
   assert.strictEqual(r.stage, 2);
 });
 
-test('getLevel(49850) => level 15, stage 3', () => {
-  const r = getLevel(49850);
+test('getLevel(50000) => level 15, stage 3', () => {
+  const r = getLevel(50000);
   assert.strictEqual(r.level, 15);
   assert.strictEqual(r.stage, 3);
 });
 
-test('getLevel(64850) => level 16, stage 3 (post-max)', () => {
-  const r = getLevel(64850);
+test('getLevel(55000) => level 16, stage 3 (post-max)', () => {
+  const r = getLevel(55000);
   assert.strictEqual(r.level, 16);
   assert.strictEqual(r.stage, 3);
 });

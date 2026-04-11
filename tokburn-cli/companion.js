@@ -11,10 +11,10 @@ const COMPANION_FILE = path.join(os.homedir(), '.tokburn', 'companion.json');
 
 // ── Level Curve ────────────────────────────────────────────────────────────
 // Index = level-1, value = XP needed to advance FROM that level to the next.
-// Level 1 starts at 0 cumulative XP. Post-15 levels cost 15000 each.
+// Level 1 starts at 0 cumulative XP. Post-15 levels cost 5000 each.
 
 const LEVEL_CURVE = [
-  0, 100, 200, 350, 500, 700, 1000, 1500, 2000, 3000, 4000, 5500, 7000, 9000, 15000,
+  0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6000, 5000,
 ];
 
 const STAGE_THRESHOLDS = { 2: 5, 3: 15 };
@@ -46,8 +46,8 @@ function getLevel(xp) {
     level++;
   }
 
-  // Post-max: level 15+ at 15000 XP each
-  const postMaxCost = 15000;
+  // Post-max: level 15+ at 5000 XP each
+  const postMaxCost = 5000;
   const remaining = xp - cumulative;
   const extraLevels = Math.floor(remaining / postMaxCost);
   level += extraLevels;

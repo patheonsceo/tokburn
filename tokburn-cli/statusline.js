@@ -118,8 +118,10 @@ function buildLine1(data, config) {
 
   // Model·Plan
   const model = (data.model && data.model.display_name) || 'Claude Code';
+  // Only append size if display_name doesn't already include it
   const ctxSize = (data.context_window && data.context_window.context_window_size) || 0;
-  const sizeLabel = ctxSize > 0 ? ' (' + abbreviateSize(ctxSize) + ')' : '';
+  const alreadyHasSize = /\d+[KMG]?\s*(context|ctx)/i.test(model);
+  const sizeLabel = (!alreadyHasSize && ctxSize > 0) ? ' (' + abbreviateSize(ctxSize) + ')' : '';
   let modelPart = model + sizeLabel;
 
   const plan = config.plan || '';
@@ -202,16 +204,27 @@ function buildLine3(data) {
 }
 
 function buildLine4() {
-  return DIM + '\u254C'.repeat(54) + RESET;
+  return DIM + '\u254C'.repeat(44) + RESET;
 }
 
-function buildLine5(companionData, levelInfo) {
+function buildLine5(companionData, levelInfo, celebrating, leveledUp) {
   const stageName = companionData.stage_name || 'Unknown';
   const level = levelInfo.level;
   const nextLevel = level + 1;
   const xpPct = levelInfo.xpForNext > 0
     ? Math.round((levelInfo.xpIntoLevel / levelInfo.xpForNext) * 100)
     : 100;
+
+  if (celebrating) {
+    return fg(255, 220, 50) + '\u2605 ' + RESET + BOLD + 'Lv.' + level + RESET + ' ' +
+      fg(255, 220, 50) + stageName + RESET + fg(255, 220, 50) + ' \u2014 EVOLVED!' + RESET +
+      fg(255, 220, 50) + ' \u2605' + RESET;
+  }
+
+  if (leveledUp) {
+    return fg(255, 220, 50) + 'Lv.' + level + ' ' + stageName + RESET + ' ' +
+      xpBar(0, 8) + fg(255, 220, 50) + ' LEVEL UP!' + RESET;
+  }
 
   return BOLD + 'Lv.' + level + RESET + ' ' + stageName + ' ' +
     xpBar(xpPct, 8) + DIM + ' \u2192 Lv.' + nextLevel + RESET;
@@ -230,9 +243,15 @@ function pickExpression(mood) {
   if (mood === 'panic') return 'panic';
   if (mood === 'stressed') return 'stress';
 
-  // Blink cycle: normal for ~3s, blink for ~0.5s
-  const frame = Math.floor(Date.now() / 500);
-  return (frame % 7 === 0) ? 'blink' : 'normal';
+  // Natural idle cycle: mostly normal, quick blinks, occasional happy flash
+  // 10-second loop at 1fps (refreshInterval=1)
+  const IDLE_CYCLE = [
+    'normal', 'normal', 'normal', 'blink',    // 0-3: idle then blink
+    'normal', 'normal',                         // 4-5: idle
+    'normal', 'normal', 'happy', 'normal',      // 6-9: idle then happy flash
+  ];
+  const second = Math.floor(Date.now() / 1000);
+  return IDLE_CYCLE[second % IDLE_CYCLE.length];
 }
 
 // ── Module Exports (for init-ui.mjs) ───────────────────────────────────────
@@ -271,7 +290,17 @@ if (require.main === module) {
   // Update XP from lines added
   const currentLines = (data.cost && data.cost.total_lines_added) || 0;
   const sessionId = (data.session && data.session.id) || (data.conversation_id) || 'unknown';
-  const xpGained = calculateXPDiff(currentLines, comp.last_lines_snapshot, sessionId, comp.last_session_id);
+
+  // First ever run — establish baseline, don't grant retroactive XP
+  let xpGained = 0;
+  if (!comp.last_session_id) {
+    comp.last_lines_snapshot = currentLines;
+    comp.last_session_id = sessionId;
+    comp.triggered_this_session = [];
+    saveCompanion(comp);
+  } else {
+    xpGained = calculateXPDiff(currentLines, comp.last_lines_snapshot, sessionId, comp.last_session_id);
+  }
 
   let justEvolved = false;
   if (xpGained > 0) {
@@ -284,11 +313,18 @@ if (require.main === module) {
     const newLevel = getLevel(comp.xp);
     comp.level = newLevel.level;
 
+    // Check for level-up (not evolution)
+    if (newLevel.level > oldLevel.level && newLevel.stage === oldLevel.stage) {
+      comp.last_levelup_at = Date.now();
+      saveCompanion(comp);
+    }
+
     // Check for evolution
     if (newLevel.stage > oldLevel.stage) {
       justEvolved = true;
       comp.stage = newLevel.stage;
       comp.stage_name = getStageName(comp.companion, newLevel.stage);
+      comp.last_evolved_at = Date.now();
       comp.evolutions.push({
         to: newLevel.stage,
         name: comp.stage_name,
@@ -319,9 +355,17 @@ if (require.main === module) {
     saveCompanion(comp);
   }
 
-  // Determine if bubble is active (show for ~10 seconds)
+  // Evolution celebration lasts 30 seconds
+  const evolvedRecently = comp.last_evolved_at && (Date.now() - comp.last_evolved_at) < 30000;
+  if (evolvedRecently) justEvolved = true;
+
+  // Level-up highlight lasts 5 seconds
+  const justLeveledUp = !justEvolved && comp.last_levelup_at && (Date.now() - comp.last_levelup_at) < 5000;
+
+  // Determine if bubble is active
   const bubbleAge = Math.floor(Date.now() / 1000) - (comp.last_bubble_at || 0);
-  const activeTrigger = bubbleAge < 10 ? comp.last_bubble_trigger : null;
+  const bubbleDuration = comp.last_bubble_trigger === 'evolution' ? 30 : 10;
+  const activeTrigger = bubbleAge < bubbleDuration ? comp.last_bubble_trigger : null;
 
   // Pick expression
   const expression = justEvolved ? 'happy' : pickExpression(mood);
@@ -342,17 +386,20 @@ if (require.main === module) {
     buildLine2(data),
     buildLine3(data),
     buildLine4(),
-    buildLine5(comp, levelInfo),
+    buildLine5(comp, levelInfo, justEvolved, justLeveledUp),
     buildLine6(personality, activeTrigger, mood),
   ];
 
   // Join sprite + divider + text side by side
   const divider = DIM + ' \u2502 ' + RESET;
-  const emptySprite = ' '.repeat(spriteWidth);
+  // Use RESET prefix to prevent leading-space stripping by terminal/renderer
+  const emptySprite = RESET + ' '.repeat(spriteWidth);
   const outputLines = [];
 
   for (let i = 0; i < Math.max(spriteRows.length, textLines.length); i++) {
-    const spr = spriteRows[i] || emptySprite;
+    let spr = spriteRows[i];
+    // If sprite row is all spaces (empty row), use anchored padding
+    if (!spr || spr.trim() === '') spr = emptySprite;
     const txt = textLines[i] || '';
     outputLines.push(spr + divider + txt);
   }
