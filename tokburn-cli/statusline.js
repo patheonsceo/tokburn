@@ -261,9 +261,15 @@ module.exports = { contextBar, limitBar, xpBar, barColor, pctColor, pickExpressi
 // ── Main: only runs when executed directly ─────────────────────────────────
 
 if (require.main === module) {
-  // Read stdin JSON
+  // Read stdin JSON — skip if stdin is a TTY (not piped)
+  // During idle refreshInterval calls, Claude Code may not pipe stdin,
+  // so reading fd 0 would block on the terminal. Skip and use empty data.
   let input = '';
-  try { input = fs.readFileSync(0, 'utf8'); } catch (_) {}
+  try {
+    if (!process.stdin.isTTY) {
+      input = fs.readFileSync(0, 'utf8');
+    }
+  } catch (_) {}
   let data = {};
   try { data = JSON.parse(input); } catch (_) {}
 
