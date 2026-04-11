@@ -33,6 +33,10 @@ tokburn init
 
 Pick your plan. Choose your creature. Give it a personality. Done. Your Tokemon hatches and starts living in your status line immediately.
 
+<p align="center">
+  <img src="screenshots/init.png" alt="tokburn init — Flint hatching" width="700" />
+</p>
+
 ---
 
 ## What you actually get
@@ -43,18 +47,19 @@ Your status line goes from this:
 Opus 4.6 (1M context) | ctx 13%
 ```
 
-To this -- a 6-line dashboard with a living creature:
+To this:
 
-```
- [Tokemon]  │ Opus 4.6 (1M context)·Max ━━━━━━────────────── 31%
- [sprite ]  │ 5h ◆◆◆◇◇◇◇◇◇◇ 27% 3h25m→10:00 | 7d ◇◇◇◇◇◇◇◇◇◇ 2%
- [sprite ]  │ +156 / -23 | ↓37K ↑152K | ⎇ main*
- [sprite ]  │ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
- [sprite ]  │ Lv.8 Blaze ▰▰▰▰▰▱▱▱ → Lv.9
-             │ 🧠 "you code like someone who hates money"
-```
+<p align="center">
+  <img src="screenshots/idle-statusline.png" alt="tokburn status line — Flint with session stats" />
+</p>
 
-Everything updates live. The sprite animates. The quips change. The bars fill up. You never hit a rate limit wall blind again.
+A living creature with animated expressions, rate limit bars, token stats, XP tracking, and personality quips. Everything updates live — you never hit a rate limit wall blind again.
+
+Here's what it looks like in a real session:
+
+<p align="center">
+  <img src="screenshots/full-session.png" alt="tokburn running in a full Claude Code session" width="700" />
+</p>
 
 ### What each line tells you
 
@@ -127,7 +132,11 @@ When your Tokemon evolves, the status line lights up gold for 30 seconds:
 
 Your Tokemon isn't static. It has 5 expressions that change in real-time:
 
-<img src="docs/assets/expressions.svg" alt="Expressions: normal, blink, happy, stress, panic" />
+<p align="center">
+  <img src="screenshots/blinking-statusline.png" alt="Flint blinking in the status line" />
+</p>
+
+<img src="docs/assets/expressions.svg" alt="All expressions: normal, blink, happy, stress, panic" />
 
 | Expression | When it shows |
 |---|---|
