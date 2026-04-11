@@ -6,6 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const readline = require('readline');
 const { getConfig, setConfig, getTokburnDir } = require('./config');
 
@@ -127,11 +128,6 @@ async function runInit() {
   console.log('  ' + '\u2500'.repeat(35));
   console.log('  Done. tokburn is ready.');
   console.log('');
-  console.log('  Commands:');
-  console.log('    tokburn status   config + today\'s usage');
-  console.log('    tokburn today    detailed breakdown by model');
-  console.log('    tokburn live     real-time TUI dashboard');
-  console.log('');
 
   rl.close();
 }
@@ -174,7 +170,7 @@ function configureStatusLine(selectedModules, elements) {
     try { settings = JSON.parse(fs.readFileSync(claudeSettings, 'utf8')); } catch (_) {}
   }
 
-  settings.statusLine = { type: 'command', command: destScript };
+  settings.statusLine = { type: 'command', command: destScript, refreshInterval: 1 };
 
   if (!fs.existsSync(claudeDir)) {
     fs.mkdirSync(claudeDir, { recursive: true });
@@ -201,12 +197,22 @@ function uninstallTokburn() {
     } catch (_) {}
   }
 
+  // Remove companion config
+  const companionPath = path.join(os.homedir(), '.tokburn', 'companion.json');
+  if (fs.existsSync(companionPath)) fs.unlinkSync(companionPath);
+
   // Clean config
   const configFile = path.join(home, '.tokburn', 'config.json');
   if (fs.existsSync(configFile)) fs.unlinkSync(configFile);
 }
 
+function configureCompanion(companion, personality) {
+  const { createCompanion } = require('./companion');
+  createCompanion(companion, personality);
+  setConfig({ companion, personality });
+}
+
 module.exports = {
   runInit, detectEnvironment, configurePlan,
-  configureStatusLine, uninstallTokburn, PLANS
+  configureStatusLine, configureCompanion, uninstallTokburn, PLANS
 };
