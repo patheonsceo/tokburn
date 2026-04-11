@@ -23,7 +23,7 @@
   <img src="docs/assets/starters.svg" alt="Three starter Tokemons: Flint (Fire), Pixel (Tech), Mochi (Nature)" />
 </p>
 
-Works with: **Claude Code** | Codex, Cursor -- coming soon
+Works with: **Claude Code**
 
 ---
 
@@ -40,7 +40,6 @@ Claude Pro/Max gives you a 5-hour usage window. You don't know how much you've u
 - [For Claude Code users (CLI)](#for-claude-code-users) -- Tokemon companion, rich status line, zero config
 - [Starters & Evolution](#starters--evolution) -- 3 creatures, 3 stages each
 - [Personalities](#personalities) -- 3 swappable voices with 100+ quips
-- [For claude.ai users (Extension)](#for-claudeai-users) -- Chrome extension with floating pill overlay
 - [Privacy](#privacy) -- everything stays on your machine
 
 ---
@@ -166,28 +165,11 @@ Quips trigger on session events: rate limit crossings, line milestones, evolutio
 
 ---
 
-## For claude.ai Users
-
-> A Chrome extension that shows token usage on claude.ai. Install it and immediately see what you're spending.
-
-### Quick Start
-
-1. Clone this repo or [download the ZIP](https://github.com/patheonsceo/tokburn/archive/refs/heads/main.zip)
-2. Open `chrome://extensions` and enable **Developer Mode**
-3. Click **Load unpacked** and select the `tokburn-ext/` folder
-4. Open [claude.ai](https://claude.ai) -- the pill appears automatically
-
-See [tokburn-ext/README.md](./tokburn-ext/README.md) for details.
-
----
-
 ## How It Works
 
 **Status line** -- Claude Code sends session data (model, rate limits, cost, context usage) to a status line script via stdin on every update. tokburn's script parses this JSON, loads your companion state, renders the Tokemon sprite with the appropriate expression, builds the 6-line layout, updates XP, and outputs to stdout. No proxy, no env vars. Zero external dependencies for the renderer -- sub-5ms execution.
 
 **Companion state** -- Stored in `~/.tokburn/companion.json`. Tracks XP, level, evolution history, personality, and bubble triggers. Updated on every status line render when lines of code change.
-
-**Chrome extension** -- Patches `window.fetch` on claude.ai using a cloned response stream. Parses SSE events for token usage data. The original response is never touched. Everything is stored in `chrome.storage.local`.
 
 ---
 
@@ -197,9 +179,8 @@ See [tokburn-ext/README.md](./tokburn-ext/README.md) for details.
 
 - The status line reads Claude Code's native JSON from stdin. No network requests.
 - Companion state is a local JSON file. No cloud sync.
-- The Chrome extension makes zero external requests. Everything in `chrome.storage.local`.
 - No analytics. No telemetry. No accounts. No cloud.
-- All code is open source. Read every line: [tokburn-cli/](./tokburn-cli/) and [tokburn-ext/](./tokburn-ext/)
+- All code is open source. Read every line: [tokburn-cli/](./tokburn-cli/)
 
 ---
 
