@@ -157,12 +157,13 @@ function configureStatusLine(selectedModules, elements) {
   if (elements) update.statusline_elements = elements;
   setConfig(update);
 
-  const srcScript = path.join(__dirname, 'statusline.js');
-  const destScript = path.join(claudeDir, 'tokburn-statusline.js');
+  // Point to the npm-installed statusline.js (needs sibling modules)
+  const scriptPath = path.join(__dirname, 'statusline.js');
 
-  if (fs.existsSync(srcScript)) {
-    fs.copyFileSync(srcScript, destScript);
-    fs.chmodSync(destScript, '755');
+  // Remove stale standalone copy if it exists
+  const oldScript = path.join(claudeDir, 'tokburn-statusline.js');
+  if (fs.existsSync(oldScript)) {
+    try { fs.unlinkSync(oldScript); } catch (_) {}
   }
 
   let settings = {};
@@ -170,7 +171,7 @@ function configureStatusLine(selectedModules, elements) {
     try { settings = JSON.parse(fs.readFileSync(claudeSettings, 'utf8')); } catch (_) {}
   }
 
-  settings.statusLine = { type: 'command', command: destScript, refreshInterval: 1 };
+  settings.statusLine = { type: 'command', command: scriptPath, refreshInterval: 1 };
 
   if (!fs.existsSync(claudeDir)) {
     fs.mkdirSync(claudeDir, { recursive: true });
@@ -181,7 +182,7 @@ function configureStatusLine(selectedModules, elements) {
 function uninstallTokburn() {
   const home = process.env.HOME || process.env.USERPROFILE;
 
-  // Remove statusline script
+  // Remove stale standalone copy if it exists
   const statuslineFile = path.join(home, '.claude', 'tokburn-statusline.js');
   if (fs.existsSync(statuslineFile)) fs.unlinkSync(statuslineFile);
 
