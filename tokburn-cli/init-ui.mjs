@@ -1,6 +1,7 @@
 /**
  * tokburn -- init-ui.mjs
  * Ink-based setup wizard for `tokburn init`.
+ * 5-step wizard: Plan → Tokemon → Personality → Status Line → Hatch
  * ESM module using Ink 6.x, @inkjs/ui v2, React 19.
  */
 
@@ -11,9 +12,10 @@ import chalk from 'chalk';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { detectEnvironment, configurePlan, configureStatusLine, PLANS } = require('./init.js');
+const { detectEnvironment, configurePlan, configureStatusLine, configureCompanion, PLANS } = require('./init.js');
 const { getConfig } = require('./config.js');
-const { PRESETS, MODULE_LIST, RICH_ELEMENTS, RICH_PRESETS, ALL_RICH_KEYS } = require('./statusline.js');
+const { renderSprite, getSprite, COMPANIONS } = require('./sprites.js');
+const { getMessage, getWatchEmoji } = require('./personality.js');
 
 const pkg = require('./package.json');
 
@@ -33,6 +35,18 @@ const PLAN_LABELS = {
   api: 'API only',
 };
 
+const TOKEMON_INFO = {
+  flint: { name: 'Flint', type: 'Fire', personality: 'Sassy', flavor: 'Fierce flame spirit. Roasts your spending.' },
+  pixel: { name: 'Pixel', type: 'Tech', personality: 'Hype', flavor: 'Digital creature. ALL CAPS energy.' },
+  mochi: { name: 'Mochi', type: 'Nature', personality: 'Anxious', flavor: 'Round blob. Worries about everything.' },
+};
+
+const PERSONALITY_INFO = {
+  sassy:   { name: 'Sassy',   desc: 'Deadpan humor, roasts spending' },
+  hype:    { name: 'Hype',    desc: 'ALL CAPS energy, lives for big numbers' },
+  anxious: { name: 'Anxious', desc: 'Nervous, sweet, worried about tokens' },
+};
+
 function dots(label, value, width = 40) {
   const used = label.length + value.length + 2;
   const count = Math.max(2, width - used);
@@ -43,47 +57,10 @@ function completedLine(label, value) {
   return `  ${chalk.green('\u2713')} ${label} ${dots(label, value)} ${chalk.bold(value)}`;
 }
 
-function previewForPreset(presetKey) {
-  if (presetKey === 'skip') return '(no status line)';
-  if (presetKey === 'custom') return '(choose your own modules)';
-  const preset = RICH_PRESETS[presetKey];
-  if (!preset) return '';
-  return buildPreviewFromElements(new Set(preset));
-}
-
-function buildPreviewFromElements(enabledSet) {
-  const SEP = chalk.dim(' | ');
-  const lines = [];
-
-  // Line 1
-  const l1 = [];
-  if (enabledSet.has('model')) {
-    let m = chalk.cyan('Opus 4.6 (1M context)');
-    if (enabledSet.has('plan')) m += chalk.dim('\u00b7') + chalk.green('Max');
-    l1.push(m);
-  } else if (enabledSet.has('plan')) {
-    l1.push(chalk.green('Max'));
-  }
-  if (enabledSet.has('context_bar')) l1.push(chalk.green('\u2588\u2588\u2588\u2588\u2588\u2588') + chalk.dim('\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591') + ' 31%');
-  if (enabledSet.has('branch')) l1.push(chalk.magenta('main*'));
-  if (enabledSet.has('session_cost')) l1.push('$3.69');
-  if (l1.length > 0) lines.push(l1.join(SEP));
-
-  // Line 2
-  const l2 = [];
-  if (enabledSet.has('limit_5h')) l2.push(chalk.dim('5h ') + chalk.green('27%') + chalk.dim(' 3h25m\u219210:00'));
-  if (enabledSet.has('limit_7d')) l2.push(chalk.dim('7d ') + chalk.yellow('75%') + chalk.dim(' 1d16h\u219204/05'));
-  if (enabledSet.has('burn_rate')) l2.push('\uD83D\uDD25' + chalk.dim('$4.9/h'));
-  if (l2.length > 0) lines.push(l2.join(SEP));
-
-  // Line 3
-  const l3 = [];
-  if (enabledSet.has('tokens')) l3.push('$3.69 D:37K/152K');
-  if (enabledSet.has('lines')) l3.push(chalk.green('+156') + '/' + chalk.red('-23'));
-  if (enabledSet.has('directory')) l3.push('tokburn');
-  if (l3.length > 0) lines.push(l3.join(SEP));
-
-  return lines.join('\n');
+/** Pre-render a sprite to ANSI string rows for display in Ink */
+function renderSpriteText(companion, stage, expression) {
+  const pixels = getSprite(companion, stage, expression);
+  return renderSprite(pixels);
 }
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -92,8 +69,9 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 const PHASE_WELCOME = 'welcome';
 const PHASE_PLAN = 'plan';
+const PHASE_TOKEMON = 'tokemon';
+const PHASE_PERSONALITY = 'personality';
 const PHASE_STATUSLINE = 'statusline';
-const PHASE_CUSTOMIZE = 'customize';
 const PHASE_PROCESSING = 'processing';
 const PHASE_DONE = 'done';
 
@@ -106,8 +84,9 @@ function App() {
 
   // User choices
   const [plan, setPlan] = useState(null);
+  const [companion, setCompanion] = useState(null);
+  const [personality, setPersonality] = useState(null);
   const [statusPreset, setStatusPreset] = useState(null);
-  const [customElements, setCustomElements] = useState(null);
 
   // Processing state
   const [taskIndex, setTaskIndex] = useState(-1);
@@ -124,7 +103,7 @@ function App() {
     }
   }, []);
 
-  // Auto-advance from welcome after a short pause
+  // Auto-advance from welcome
   useEffect(() => {
     if (phase === PHASE_WELCOME && env) {
       const t = setTimeout(() => setPhase(PHASE_PLAN), 100);
@@ -145,7 +124,7 @@ function App() {
         if (cancelled) return;
         setTaskIndex(i);
         setProgress(Math.round(((i) / tasks.length) * 100));
-        await sleep(200);
+        await sleep(300);
 
         try {
           const result = await tasks[i].run();
@@ -159,7 +138,7 @@ function App() {
       setTaskResults(results);
       setProgress(100);
       setTaskIndex(tasks.length);
-      await sleep(300);
+      await sleep(500);
       setPhase(PHASE_DONE);
     }
 
@@ -170,7 +149,7 @@ function App() {
   // Exit after done phase renders
   useEffect(() => {
     if (phase === PHASE_DONE) {
-      const t = setTimeout(() => exit(), 500);
+      const t = setTimeout(() => exit(), 1500);
       return () => clearTimeout(t);
     }
   }, [phase, exit]);
@@ -183,25 +162,20 @@ function App() {
     tasks.push({
       key: 'plan',
       label: 'Plan configured',
-      run: () => {
-        configurePlan(plan);
-        return {};
-      },
+      run: () => { configurePlan(plan); },
     });
 
-    // Determine elements to save
-    const finalPreset = statusPreset;
-    const isRich = finalPreset && finalPreset !== 'skip';
+    tasks.push({
+      key: 'companion',
+      label: 'Tokemon hatched',
+      run: () => { configureCompanion(companion, personality); },
+    });
 
-    if (isRich && env && env.hasClaudeCode) {
+    if (statusPreset !== 'skip' && env && env.hasClaudeCode) {
       tasks.push({
         key: 'statusline',
         label: 'Status line configured',
-        run: () => {
-          const elements = customElements || RICH_PRESETS[finalPreset] || ALL_RICH_KEYS;
-          configureStatusLine(['rich'], elements);
-          return { count: elements.length };
-        },
+        run: () => { configureStatusLine(['rich']); },
       });
     }
 
@@ -212,6 +186,19 @@ function App() {
 
   const handlePlanSelect = useCallback((value) => {
     setPlan(value);
+    setPhase(PHASE_TOKEMON);
+  }, []);
+
+  const handleTokemonSelect = useCallback((value) => {
+    setCompanion(value);
+    // Set default personality for this Tokemon
+    const defaults = { flint: 'sassy', pixel: 'hype', mochi: 'anxious' };
+    setPersonality(defaults[value]);
+    setPhase(PHASE_PERSONALITY);
+  }, []);
+
+  const handlePersonalitySelect = useCallback((value) => {
+    setPersonality(value);
     if (env && env.hasClaudeCode) {
       setPhase(PHASE_STATUSLINE);
     } else {
@@ -221,17 +208,7 @@ function App() {
   }, [env]);
 
   const handleStatusLineSelect = useCallback((value) => {
-    if (value === 'custom') {
-      setStatusPreset('custom');
-      setPhase(PHASE_CUSTOMIZE);
-    } else {
-      setStatusPreset(value);
-      setPhase(PHASE_PROCESSING);
-    }
-  }, []);
-
-  const handleCustomizeConfirm = useCallback((elements) => {
-    setCustomElements(elements);
+    setStatusPreset(value);
     setPhase(PHASE_PROCESSING);
   }, []);
 
@@ -243,60 +220,60 @@ function App() {
     );
   }
 
-  const statusLabel = statusPreset === 'skip' ? 'skipped'
-    : statusPreset === 'custom' ? 'Custom (' + (customElements || ALL_RICH_KEYS).length + ')'
-    : statusPreset ? statusPreset.charAt(0).toUpperCase() + statusPreset.slice(1)
+  const stepCount = env.hasClaudeCode ? 4 : 3;
+  const stepNum = phase === PHASE_PLAN ? 1
+    : phase === PHASE_TOKEMON ? 2
+    : phase === PHASE_PERSONALITY ? 3
+    : phase === PHASE_STATUSLINE ? 4
     : null;
 
   return React.createElement(Box, { flexDirection: 'column', paddingX: 1 },
     // Logo + header
     React.createElement(Box, { flexDirection: 'column' },
       React.createElement(Text, { color: 'yellow' }, LOGO),
-      React.createElement(Text, { dimColor: true }, `  token tracking for Claude Code  v${pkg.version}`),
+      React.createElement(Text, { dimColor: true }, `  Tokemons — your coding companion  v${pkg.version}`),
       React.createElement(Newline, null),
       React.createElement(Text, { dimColor: true }, '  ' + '\u2500'.repeat(44)),
-      React.createElement(Newline, null),
-      React.createElement(Text, null,
-        '  Detected: ',
-        React.createElement(Text, { bold: true }, env.shell),
-        env.hasClaudeCode
-          ? React.createElement(Text, null, ' + ', React.createElement(Text, { color: 'cyan' }, 'Claude Code'))
-          : React.createElement(Text, { dimColor: true }, ' (no Claude Code)')
-      ),
       React.createElement(Newline, null)
     ),
 
     // Completed steps
     plan ? React.createElement(Text, null, completedLine('Plan', PLAN_LABELS[plan])) : null,
-    statusLabel && phase !== PHASE_STATUSLINE && phase !== PHASE_CUSTOMIZE
-      ? React.createElement(Text, null, completedLine('Status line', statusLabel))
+    companion && phase !== PHASE_TOKEMON
+      ? React.createElement(Text, null, completedLine('Tokemon', TOKEMON_INFO[companion].name))
+      : null,
+    personality && phase !== PHASE_PERSONALITY && phase !== PHASE_TOKEMON
+      ? React.createElement(Text, null, completedLine('Personality', PERSONALITY_INFO[personality].name))
+      : null,
+    statusPreset && phase !== PHASE_STATUSLINE && statusPreset !== 'skip'
+      ? React.createElement(Text, null, completedLine('Status line', 'Recommended'))
       : null,
 
     // Active phase
-    phase === PHASE_PLAN ? React.createElement(PlanStep, { onSelect: handlePlanSelect }) : null,
-    phase === PHASE_STATUSLINE ? React.createElement(StatusLineStep, { onSelect: handleStatusLineSelect }) : null,
-    phase === PHASE_CUSTOMIZE ? React.createElement(CustomizerStep, { onConfirm: handleCustomizeConfirm }) : null,
+    phase === PHASE_PLAN ? React.createElement(PlanStep, { onSelect: handlePlanSelect, step: 1, total: stepCount }) : null,
+    phase === PHASE_TOKEMON ? React.createElement(TokemonStep, { onSelect: handleTokemonSelect, step: 2, total: stepCount }) : null,
+    phase === PHASE_PERSONALITY ? React.createElement(PersonalityStep, {
+      onSelect: handlePersonalitySelect,
+      companion,
+      step: 3,
+      total: stepCount,
+    }) : null,
+    phase === PHASE_STATUSLINE ? React.createElement(StatusLineStep, { onSelect: handleStatusLineSelect, step: 4, total: stepCount }) : null,
     phase === PHASE_PROCESSING ? React.createElement(ProcessingPhase, {
       tasks: buildTaskList(),
       taskIndex,
       taskResults,
       progress,
     }) : null,
-    phase === PHASE_DONE ? React.createElement(DoneSummary, {
-      plan,
-      statusPreset,
-      customElements,
-      env,
-      taskResults,
-    }) : null
+    phase === PHASE_DONE ? React.createElement(DonePhase, { companion, personality }) : null
   );
 }
 
 // ── Step Components ─────────────────────────────────────────────────────────
 
-function PlanStep({ onSelect }) {
+function PlanStep({ onSelect, step, total }) {
   return React.createElement(Box, { flexDirection: 'column', marginTop: 0 },
-    React.createElement(Text, { bold: true }, '  [1/2] Which Claude plan are you on?'),
+    React.createElement(Text, { bold: true }, `  [${step}/${total}] Which Claude plan are you on?`),
     React.createElement(Newline, null),
     React.createElement(Box, { paddingLeft: 4 },
       React.createElement(Select, {
@@ -311,146 +288,122 @@ function PlanStep({ onSelect }) {
   );
 }
 
-function StatusLineStep({ onSelect }) {
-  const STATUS_OPTIONS = [
-    { label: 'Recommended   all modules enabled', value: 'recommended' },
-    { label: 'Minimal       model + context + 5hr limit', value: 'minimal' },
-    { label: 'Custom        pick your own modules', value: 'custom' },
-    { label: 'Skip', value: 'skip' },
-  ];
-
-  const [highlightIndex, setHighlightIndex] = useState(0);
+function TokemonStep({ onSelect, step, total }) {
+  const [cursor, setCursor] = useState(0);
+  const companions = ['flint', 'pixel', 'mochi'];
 
   useInput((input, key) => {
-    if (key.upArrow) setHighlightIndex(i => Math.max(0, i - 1));
-    else if (key.downArrow) setHighlightIndex(i => Math.min(STATUS_OPTIONS.length - 1, i + 1));
-    else if (key.return) onSelect(STATUS_OPTIONS[highlightIndex].value);
+    if (key.leftArrow || key.upArrow) setCursor(c => Math.max(0, c - 1));
+    else if (key.rightArrow || key.downArrow) setCursor(c => Math.min(2, c + 1));
+    else if (key.return) onSelect(companions[cursor]);
   });
 
-  const currentPreset = STATUS_OPTIONS[highlightIndex].value;
-  const preview = previewForPreset(currentPreset);
+  const current = companions[cursor];
+  const info = TOKEMON_INFO[current];
+  const spriteRows = renderSpriteText(current, 1, 'normal');
 
   return React.createElement(Box, { flexDirection: 'column', marginTop: 0 },
-    React.createElement(Text, { bold: true }, '  [2/2] Configure Claude Code status line?'),
+    React.createElement(Text, { bold: true }, `  [${step}/${total}] Choose your starter Tokemon`),
+    React.createElement(Text, { dimColor: true }, '  \u2190\u2192 or \u2191\u2193 to browse, enter to select'),
     React.createElement(Newline, null),
-    React.createElement(Box, { flexDirection: 'column', paddingLeft: 4 },
-      ...STATUS_OPTIONS.map((opt, i) =>
-        React.createElement(Text, { key: opt.value },
-          i === highlightIndex
-            ? React.createElement(Text, { color: 'cyan' }, '> ' + opt.label)
-            : React.createElement(Text, { dimColor: true }, '  ' + opt.label)
-        )
+
+    // Tokemon selector tabs
+    React.createElement(Box, { paddingLeft: 4, gap: 2 },
+      ...companions.map((c, i) => {
+        const ti = TOKEMON_INFO[c];
+        return React.createElement(Text, { key: c },
+          i === cursor
+            ? React.createElement(Text, { color: 'cyan', bold: true }, `[ ${ti.name} ]`)
+            : React.createElement(Text, { dimColor: true }, `  ${ti.name}  `)
+        );
+      })
+    ),
+    React.createElement(Newline, null),
+
+    // Sprite preview
+    React.createElement(Box, { paddingLeft: 4, flexDirection: 'column' },
+      ...spriteRows.map((row, i) =>
+        React.createElement(Text, { key: `sprite-${cursor}-${i}` }, row)
       )
     ),
     React.createElement(Newline, null),
-    preview ? React.createElement(Box, {
-      borderStyle: 'round',
-      borderColor: currentPreset === 'skip' ? 'gray' : 'cyan',
-      paddingX: 1,
-      marginLeft: 4,
-    },
-      React.createElement(Box, { flexDirection: 'column' },
-        React.createElement(Text, { dimColor: true }, 'Preview:'),
-        ...preview.split('\n').map((line, i) =>
-          React.createElement(Text, { key: `preview-${currentPreset}-${i}` }, line)
-        )
-      )
-    ) : null
+
+    // Info
+    React.createElement(Box, { paddingLeft: 4, flexDirection: 'column' },
+      React.createElement(Text, null,
+        React.createElement(Text, { bold: true }, info.name),
+        React.createElement(Text, { dimColor: true }, ` the ${info.type} type`)
+      ),
+      React.createElement(Text, { dimColor: true }, info.flavor),
+      React.createElement(Text, { dimColor: true }, `Default personality: ${info.personality}`)
+    )
   );
 }
 
-// ── Customizer Step ─────────────────────────────────────────────────────────
-
-function CustomizerStep({ onConfirm }) {
+function PersonalityStep({ onSelect, companion, step, total }) {
   const [cursor, setCursor] = useState(0);
-  const [enabled, setEnabled] = useState(() => new Set(ALL_RICH_KEYS));
-
-  // Build display rows: line headers + elements
-  const rows = [];
-  let currentLine = 0;
-  for (const el of RICH_ELEMENTS) {
-    if (el.line !== currentLine) {
-      currentLine = el.line;
-      rows.push({ type: 'header', line: el.line });
-    }
-    rows.push({ type: 'element', ...el });
-  }
-
-  // Only count element rows for cursor navigation
-  const elementRows = rows.filter(r => r.type === 'element');
+  const personalities = ['sassy', 'hype', 'anxious'];
 
   useInput((input, key) => {
-    if (key.upArrow) {
-      setCursor(c => Math.max(0, c - 1));
-    } else if (key.downArrow) {
-      setCursor(c => Math.min(elementRows.length - 1, c + 1));
-    } else if (input === ' ') {
-      const el = elementRows[cursor];
-      setEnabled(prev => {
-        const next = new Set(prev);
-        if (next.has(el.key)) next.delete(el.key);
-        else next.add(el.key);
-        return next;
-      });
-    } else if (key.return) {
-      onConfirm(Array.from(enabled));
-    }
+    if (key.upArrow) setCursor(c => Math.max(0, c - 1));
+    else if (key.downArrow) setCursor(c => Math.min(2, c + 1));
+    else if (key.return) onSelect(personalities[cursor]);
   });
 
-  const preview = buildPreviewFromElements(enabled);
-  const LINE_LABELS = { 1: 'LINE 1', 2: 'LINE 2', 3: 'LINE 3' };
+  const current = personalities[cursor];
+  const info = PERSONALITY_INFO[current];
 
-  let elementIndex = 0;
+  // Show sample quips for each mood
+  const sampleMoods = ['chill', 'alert', 'stressed', 'panic'];
+  const samples = sampleMoods.map(mood => getMessage(current, null, mood));
 
   return React.createElement(Box, { flexDirection: 'column', marginTop: 0 },
-    React.createElement(Text, { bold: true }, '  Customize your status line'),
-    React.createElement(Text, { dimColor: true }, '  \u2191\u2193 navigate  space toggle  enter confirm'),
+    React.createElement(Text, { bold: true }, `  [${step}/${total}] Choose your Tokemon's personality`),
     React.createElement(Newline, null),
 
-    // Element rows
-    ...rows.map((row, i) => {
-      if (row.type === 'header') {
-        return React.createElement(Text, { key: `h-${row.line}`, dimColor: true, bold: true },
-          '    ' + LINE_LABELS[row.line]
+    // Personality options
+    React.createElement(Box, { flexDirection: 'column', paddingLeft: 4 },
+      ...personalities.map((p, i) => {
+        const pi = PERSONALITY_INFO[p];
+        return React.createElement(Text, { key: p },
+          i === cursor
+            ? React.createElement(Text, { color: 'cyan' }, `> ${pi.name.padEnd(10)} ${pi.desc}`)
+            : React.createElement(Text, { dimColor: true }, `  ${pi.name.padEnd(10)} ${pi.desc}`)
         );
-      }
-
-      const idx = elementIndex++;
-      const isActive = idx === cursor;
-      const isOn = enabled.has(row.key);
-      const check = isOn ? chalk.green('[x]') : chalk.dim('[ ]');
-      const label = row.label.padEnd(20);
-      const example = chalk.dim(row.example);
-
-      if (isActive) {
-        return React.createElement(Text, { key: row.key },
-          '  ', React.createElement(Text, { color: 'cyan' }, '> '),
-          check, ' ', label, ' ', example
-        );
-      }
-      return React.createElement(Text, { key: row.key },
-        '    ', check, ' ', label, ' ', example
-      );
-    }),
-
+      })
+    ),
     React.createElement(Newline, null),
 
-    // Live preview
-    enabled.size > 0
-      ? React.createElement(Box, {
-          borderStyle: 'round',
-          borderColor: 'cyan',
-          paddingX: 1,
-          marginLeft: 4,
-        },
-          React.createElement(Box, { flexDirection: 'column' },
-            React.createElement(Text, { dimColor: true }, 'Live preview:'),
-            ...preview.split('\n').map((line, j) =>
-              React.createElement(Text, { key: `cpreview-${j}-${enabled.size}` }, line)
-            )
-          )
-        )
-      : React.createElement(Text, { dimColor: true, color: 'yellow' }, '    No modules selected')
+    // Sample quips
+    React.createElement(Box, {
+      borderStyle: 'round',
+      borderColor: 'cyan',
+      paddingX: 1,
+      marginLeft: 4,
+      flexDirection: 'column',
+    },
+      React.createElement(Text, { dimColor: true }, 'Sample quips:'),
+      ...samples.map((quip, i) =>
+        React.createElement(Text, { key: `quip-${cursor}-${i}`, dimColor: true },
+          `  ${sampleMoods[i].padEnd(10)} "${quip}"`)
+      )
+    )
+  );
+}
+
+function StatusLineStep({ onSelect, step, total }) {
+  return React.createElement(Box, { flexDirection: 'column', marginTop: 0 },
+    React.createElement(Text, { bold: true }, `  [${step}/${total}] Configure Claude Code status line?`),
+    React.createElement(Newline, null),
+    React.createElement(Box, { paddingLeft: 4 },
+      React.createElement(Select, {
+        options: [
+          { label: 'Recommended   full Tokemon status line', value: 'recommended' },
+          { label: 'Skip          configure later', value: 'skip' },
+        ],
+        onChange: onSelect,
+      })
+    )
   );
 }
 
@@ -458,7 +411,7 @@ function CustomizerStep({ onConfirm }) {
 
 function ProcessingPhase({ tasks, taskIndex, taskResults, progress }) {
   return React.createElement(Box, { flexDirection: 'column', marginTop: 1 },
-    React.createElement(Text, { bold: true }, '  Setting up tokburn...'),
+    React.createElement(Text, { bold: true }, '  Hatching your Tokemon...'),
     React.createElement(Newline, null),
     React.createElement(Box, { paddingLeft: 2 },
       React.createElement(ProgressBar, { value: progress })
@@ -484,29 +437,43 @@ function ProcessingPhase({ tasks, taskIndex, taskResults, progress }) {
   );
 }
 
-// ── Done Summary ────────────────────────────────────────────────────────────
+// ── Done Phase ──────────────────────────────────────────────────────────────
 
-function DoneSummary({ plan, statusPreset, customElements, env, taskResults }) {
-  const elCount = customElements ? customElements.length : ALL_RICH_KEYS.length;
-  const statusDesc = !statusPreset || statusPreset === 'skip' ? 'skipped'
-    : statusPreset === 'custom' ? 'Custom (' + elCount + ' modules)'
-    : statusPreset.charAt(0).toUpperCase() + statusPreset.slice(1) + ' (' + elCount + ' modules)';
+function DonePhase({ companion, personality }) {
+  const info = TOKEMON_INFO[companion];
+  const spriteRows = renderSpriteText(companion, 1, 'happy');
+  const greeting = getMessage(personality, 'session_start', 'chill');
 
   return React.createElement(Box, { flexDirection: 'column', marginTop: 1 },
-    React.createElement(Text, { dimColor: true }, `  ${'─'.repeat(2)} Setup complete ${'─'.repeat(25)}`),
+    React.createElement(Text, { dimColor: true }, `  ${'─'.repeat(2)} Your Tokemon has hatched! ${'─'.repeat(19)}`),
     React.createElement(Newline, null),
-    React.createElement(Text, null, completedLine('Plan', PLAN_LABELS[plan])),
-    React.createElement(Text, null, completedLine('Status line', statusDesc)),
-    React.createElement(Newline, null),
-    React.createElement(Text, { bold: true }, '  Try these:'),
-    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, 'tokburn status'), '   config + today\'s usage'),
-    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, 'tokburn today'), '    detailed breakdown by model'),
-    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, 'tokburn live'), '     real-time TUI dashboard'),
-    React.createElement(Text, null, '    ', React.createElement(Text, { color: 'cyan' }, 'tokburn scan'), '     analyze all Claude Code logs'),
+
+    // Sprite + greeting side by side
+    React.createElement(Box, { paddingLeft: 4, gap: 2 },
+      React.createElement(Box, { flexDirection: 'column' },
+        ...spriteRows.map((row, i) =>
+          React.createElement(Text, { key: `done-sprite-${i}` }, row)
+        )
+      ),
+      React.createElement(Box, { flexDirection: 'column', justifyContent: 'center' },
+        React.createElement(Text, { bold: true }, `${info.name} the ${info.type} type`),
+        React.createElement(Text, { dimColor: true }, `"${greeting}"`),
+        React.createElement(Newline, null),
+        React.createElement(Text, { dimColor: true }, 'Write code to earn XP and evolve!')
+      )
+    ),
     React.createElement(Newline, null)
   );
 }
 
 // ── Entry point ─────────────────────────────────────────────────────────────
 
+export function runInkInit() {
+  return new Promise((resolve) => {
+    const instance = render(React.createElement(App));
+    instance.waitUntilExit().then(resolve);
+  });
+}
+
+// Direct execution
 render(React.createElement(App));
