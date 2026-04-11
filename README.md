@@ -87,6 +87,8 @@ The wizard has 4 steps:
 
 Sprites animate with expression cycling (blink, mood reactions) at 1-second refresh. Color rule: white for facts, dim gray for structure, muted green/yellow/red for bars only.
 
+> **Note:** Sprite animation requires **Claude Code v2.1.97+** (run `claude update`). Older versions ignore `refreshInterval` and won't animate. Also make sure `CLAUDE_CODE_NO_FLICKER` is **not** set in your settings — it suppresses status line redraws.
+
 ### Skills
 
 | Skill | What it does |
@@ -120,8 +122,8 @@ Choose one of three starter Tokemons. Each has a unique design and evolves throu
 Your Tokemon earns XP from lines of code you write:
 
 - **Stage 1** (Lv.1-4): Starter form
-- **Stage 2** (Lv.5-14): First evolution at ~1,150 lines of code
-- **Stage 3** (Lv.15+): Final form at ~49,850 lines
+- **Stage 2** (Lv.5-14): First evolution at ~5,000 lines of code
+- **Stage 3** (Lv.15+): Final form at ~50,000 lines
 
 Post-Level 15 continues indefinitely -- bragging rights.
 

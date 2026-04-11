@@ -26,8 +26,8 @@ tokburn init
 Your Tokemon earns XP from lines of code you write. It evolves at Level 5 and Level 15:
 
 - **Stage 1** (Lv.1-4): Starter form
-- **Stage 2** (Lv.5-14): First evolution at ~1,150 lines
-- **Stage 3** (Lv.15+): Final form at ~49,850 lines
+- **Stage 2** (Lv.5-14): First evolution at ~5,000 lines
+- **Stage 3** (Lv.15+): Final form at ~50,000 lines
 
 ## Status Line
 
@@ -43,6 +43,8 @@ A 6-line status with your Tokemon sprite, session stats, and personality quips:
 ```
 
 Sprites animate with expression cycling (blink, mood reactions) at 1-second refresh.
+
+> **Note:** Sprite animation requires **Claude Code v2.1.97+** (run `claude update`). Older versions ignore `refreshInterval` and won't animate. Also make sure `CLAUDE_CODE_NO_FLICKER` is **not** set in your settings — it suppresses status line redraws.
 
 ## Personalities
 
