@@ -498,7 +498,7 @@ function renderSprite(pixels) {
   const rows = [];
   // Near-invisible block for empty cells — prevents whitespace stripping
   // and guarantees consistent character width across all rows
-  const EMPTY_CELL = fg(15, 15, 20) + '\u2580' + RESET;
+  const EMPTY_CELL = fg(1, 1, 1) + '\u2580' + RESET;
   for (let y = 0; y < height; y += 2) {
     let row = '';
     for (let x = 0; x < width; x++) {
