@@ -1,71 +1,62 @@
 # tokburn
 
-**Choose your Tokemon. Write code. Watch it evolve.**
+**Choose your Tokemon. Write code. Watch it evolve. Track your Claude Code stats live.**
 
-A coding companion for Claude Code. Pick a starter creature, give it a personality, and watch it grow in your status line as you write code. No proxy. No env vars. Everything local.
+A pixel art companion that lives in your Claude Code status line — it blinks, reacts to your token usage, roasts your spending habits, and evolves as you write more code. Also happens to be a full session dashboard.
 
-## Quick Start
+## Two lines. That's it.
 
 ```bash
 npm i -g tokburn
 tokburn init
 ```
 
-4-step wizard: pick your plan, choose your Tokemon, pick a personality, configure your status line.
+Pick your plan. Choose your creature. Give it a personality. Your Tokemon hatches and starts living in your status line immediately.
 
-## Starters
+## Three starters
 
-| Tokemon | Type | Evolves to | Personality |
+| Tokemon | Type | Evolves to | Default voice |
 |---|---|---|---|
-| Flint | Fire | Blaze → Inferno | Sassy |
-| Pixel | Tech | Codec → Daemon | Hype |
-| Mochi | Nature | Puff → Nimbus | Anxious |
+| **Flint** | Fire | Blaze → Inferno | Sassy — roasts you with a straight face |
+| **Pixel** | Tech | Codec → Daemon | Hype — unhinged internet energy |
+| **Mochi** | Nature | Puff → Nimbus | Anxious — tries to be brave, fails adorably |
+
+152 unique quips across all personalities. Swap them independently of your Tokemon.
+
+## What you get
+
+A 6-line animated dashboard replacing your default status line:
+
+- **Model + context bar** — see when context is getting full before you lose it
+- **Rate limit bars** — 5-hour and 7-day limits with reset countdowns
+- **Lines + tokens + branch** — track what Claude is actually doing
+- **XP bar + level** — watch your companion grow as you code
+- **Personality quips** — your Tokemon's live commentary on your session
+
+The sprite animates with expression cycling — blinks, reacts to rate limit stress, celebrates when you level up or evolve.
 
 ## Evolution
 
-Your Tokemon earns XP from lines of code you write. It evolves at Level 5 and Level 15:
+Your Tokemon earns XP from every line of code Claude writes. Across all projects, all sessions.
 
-- **Stage 1** (Lv.1-4): Starter form
-- **Stage 2** (Lv.5-14): First evolution at ~5,000 lines
-- **Stage 3** (Lv.15+): Final form at ~50,000 lines
-
-## Status Line
-
-A 6-line status with your Tokemon sprite, session stats, and personality quips:
-
-```
- [sprite]  │ Opus 4.6 (1M)·Max ━━━━━━────────────── 31%
- [sprite]  │ 5h ◆◆◆◇◇◇◇◇◇◇ 27% 3h25m→10:00 | 7d ◇◇◇◇◇◇◇◇◇◇ 2%
- [sprite]  │ +156 / -23 | ↓37K ↑152K | ⎇ main*
- [sprite]  │ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
- [sprite]  │ Lv.8 Blaze ▰▰▰▰▰▱▱▱ → Lv.9
-            │ 🧠 "slow day huh. saving money for once?"
-```
-
-Sprites animate with expression cycling (blink, mood reactions) at 1-second refresh.
-
-> **Note:** Sprite animation requires **Claude Code v2.1.97+** (run `claude update`). Older versions ignore `refreshInterval` and won't animate. Also make sure `CLAUDE_CODE_NO_FLICKER` is **not** set in your settings — it suppresses status line redraws.
-
-## Personalities
-
-- **Sassy**: Deadpan humor, roasts your spending
-- **Hype**: ALL CAPS energy, lives for big numbers
-- **Anxious**: Sweet and nervous, worried about tokens
-
-Swappable independently of Tokemon choice.
+- **Stage 2** at ~5,000 lines (Lv.5) — new sprite, new name, 30-second golden celebration
+- **Stage 3** at ~50,000 lines (Lv.15) — final form, earned over weeks of real work
+- **Post-15** — levels keep climbing forever. Bragging rights.
 
 ## Skills
 
 | Skill | What it does |
 |---|---|
-| `/tokburn-check` | Session health, context analysis, tips |
-| `/tokburn-plan` | Estimate token cost before starting |
-| `/tokemon-stats` | XP, level, evolution progress |
+| `/tokburn-check` | Session health check, context analysis, optimization tips |
+| `/tokburn-plan` | Estimate token cost before starting a big task |
+| `/tokemon-stats` | XP, level, evolution progress, lifetime stats |
+
+## Requirements
+
+- Node.js >= 18
+- **Claude Code v2.1.97+** (run `claude update`) — older versions won't animate
+- Make sure `CLAUDE_CODE_NO_FLICKER` is **not** set in your settings
 
 ## Privacy
 
-Everything stays on your machine. No network requests. No telemetry. No accounts. MIT licensed.
-
-## License
-
-MIT
+Everything stays on your machine. No network requests. No telemetry. No accounts. No cloud. MIT licensed.
