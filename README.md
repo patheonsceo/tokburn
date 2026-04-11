@@ -9,7 +9,7 @@
      ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝
 ```
 
-**Token tracking for Claude Code. See what you burn.**
+**Choose your Tokemon. Write code. Watch it evolve.**
 
 [![npm](https://img.shields.io/npm/v/tokburn?color=orange)](https://www.npmjs.com/package/tokburn)
 [![downloads](https://img.shields.io/npm/dm/tokburn)](https://www.npmjs.com/package/tokburn)
@@ -20,9 +20,12 @@
 </div>
 
 ```
-Opus 4.6 (1M context)·Max █████░░░░░░░░░░░░░░░ 25% | main* | $18.79
-5h 6% 3h25m→14:20 | 7d 64% 1d16h→04/05 | 🔥$7.6/h
-$18.79 D:13.9K/106.9K | +1260/-872 | tokburn
+ [sprite]  │ Opus 4.6 (1M)·Max ━━━━━━────────────── 31%
+ [sprite]  │ 5h ◆◆◆◇◇◇◇◇◇◇ 27% 3h25m→10:00 | 7d ◇◇◇◇◇◇◇◇◇◇ 2%
+ [sprite]  │ +156 / -23 | ↓37K ↑152K | ⎇ main*
+ [sprite]  │ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ [sprite]  │ Lv.8 Blaze ▰▰▰▰▰▱▱▱ → Lv.9
+            │ 🧠 "slow day huh. saving money for once?"
 ```
 
 Works with: **Claude Code** | Codex, Cursor -- coming soon
@@ -33,15 +36,16 @@ Works with: **Claude Code** | Codex, Cursor -- coming soon
 
 Claude Pro/Max gives you a 5-hour usage window. You don't know how much you've used until you hit the wall mid-conversation and lose your entire context. Saying "hi" to Claude Code can cost 3% of your session. Refactoring a file? Maybe 15%. You have no idea until it's too late.
 
-**tokburn fixes this.**
+**tokburn fixes this** -- and gives you a companion while you code.
 
 ---
 
 ## Table of Contents
 
-- [For Claude Code users (CLI)](#for-claude-code-users) -- rich status line, analytics commands, zero config
+- [For Claude Code users (CLI)](#for-claude-code-users) -- Tokemon companion, rich status line, zero config
+- [Starters & Evolution](#starters--evolution) -- 3 creatures, 3 stages each
+- [Personalities](#personalities) -- 3 swappable voices with 100+ quips
 - [For claude.ai users (Extension)](#for-claudeai-users) -- Chrome extension with floating pill overlay
-- [How it works](#how-it-works) -- architecture in 30 seconds
 - [Privacy](#privacy) -- everything stays on your machine
 
 ---
@@ -50,19 +54,7 @@ Claude Pro/Max gives you a 5-hour usage window. You don't know how much you've u
 
 > `npm i -g tokburn && tokburn init` -- that's it. No proxy. No env vars. Nothing to break.
 
-tokburn adds a **rich, colorful status line** to Claude Code showing your token usage, rate limits, burn rate, cost, and git stats. Updated after every response.
-
-```
-Opus 4.6 (1M context)·Max █████░░░░░░░░░░░░░░░ 25% | main* | $18.79
-5h 6% 3h25m→14:20 | 7d 64% 1d16h→04/05 | 🔥$7.6/h
-$18.79 D:13.9K/106.9K | +1260/-872 | tokburn
-```
-
-**Line 1:** Model, plan, context window bar, git branch, session cost
-**Line 2:** 5-hour rate limit, 7-day rate limit, burn rate ($/hr)
-**Line 3:** Cost + token counts, lines added/removed, directory
-
-Colors: model in cyan, plan in green, branch in magenta, rate limits color-coded by usage (green/yellow/red), added lines green, removed lines red.
+tokburn adds a **Tokemon companion** to your Claude Code status line. Your creature lives alongside your session stats, reacts to token usage with mood-based expressions, and evolves as you write code.
 
 ### Quick Start
 
@@ -71,104 +63,110 @@ npm i -g tokburn
 tokburn init
 ```
 
-The wizard has 2 steps:
+The wizard has 4 steps:
 
 1. Pick your plan (Pro / Max / API)
-2. Configure status line (Recommended / Minimal / Custom / Skip)
+2. Choose your starter Tokemon (Flint / Pixel / Mochi)
+3. Pick a personality (Sassy / Hype / Anxious)
+4. Configure status line (Recommended / Skip)
 
-That's it. No proxy daemon, no shell config, no env vars. tokburn reads Claude Code's native session data.
+### Status Line
 
-### Custom Status Line
-
-Pick **Custom** in the init wizard to toggle individual elements:
+6 lines: your Tokemon sprite on the left, session stats on the right.
 
 ```
-  Customize your status line
-
-  ↑↓ navigate  space toggle  enter confirm
-
-  LINE 1
-  [x] Model + context     Opus 4.6 (1M context)
-  [x] Plan tier            ·Max
-  [x] Context bar          ██████░░░░░░░░░░░░░░ 31%
-  [x] Git branch           main*
-  [x] Session cost         $3.69
-
-  LINE 2
-  [x] 5hr rate limit       5h 27% 3h25m→10:00
-  [x] 7day rate limit      7d 75% 1d16h→04/05
-  [x] Burn rate            🔥$4.9/h
-
-  LINE 3
-  [x] Token counts         $3.69 D:37K/152K
-  [x] Lines changed        +156/-23
-  [x] Directory            tokburn
-
-  ╭──────────────────────────────────────────────────╮
-  │ Live preview updates as you toggle               │
-  ╰──────────────────────────────────────────────────╯
+ [sprite]  │ Opus 4.6 (1M)·Max ━━━━━━────────────── 31%
+ [sprite]  │ 5h ◆◆◆◇◇◇◇◇◇◇ 27% 3h25m→10:00 | 7d ◇◇◇◇◇◇◇◇◇◇ 2%
+ [sprite]  │ +156 / -23 | ↓37K ↑152K | ⎇ main*
+ [sprite]  │ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ [sprite]  │ Lv.8 Blaze ▰▰▰▰▰▱▱▱ → Lv.9
+            │ 🧠 "slow day huh. saving money for once?"
 ```
 
-Toggle elements off and they disappear from the preview. Toggle off all of Line 3 and it disappears entirely. 11 individually configurable elements.
+**Line 1:** Model, plan, context bar (━─), percentage
+**Line 2:** 5-hour rate limit (◆◇), 7-day rate limit (◆◇), reset times
+**Line 3:** Lines changed (+green/-red), tokens in/out, git branch
+**Line 4:** Divider
+**Line 5:** Level, Tokemon name, XP bar (▰▱), next level
+**Line 6:** Animated emoji + personality quip
 
-### CLI Commands
+Sprites animate with expression cycling (blink, mood reactions) at 1-second refresh. Color rule: white for facts, dim gray for structure, muted green/yellow/red for bars only.
+
+### Skills
+
+| Skill | What it does |
+|---|---|
+| `/tokburn-check` | Session health, context analysis, optimization tips |
+| `/tokburn-plan` | Estimate token cost before starting a task |
+| `/tokemon-stats` | XP, level, evolution progress, lifetime stats |
+
+### Commands
 
 | Command | What it does |
 |---|---|
 | `tokburn init` | Interactive setup wizard |
-| `tokburn status` | Config summary + today's usage |
-| `tokburn today` | Today's breakdown by model with costs |
-| `tokburn week` | 7-day ASCII table |
-| `tokburn live` | Real-time TUI dashboard |
-| `tokburn scan` | Analyze all Claude Code log history |
-| `tokburn export` | Dump all data as CSV |
-| `tokburn reset` | Clear cached data |
 | `tokburn init --remove` | Uninstall tokburn from Claude Code |
 
-### `tokburn today`
+---
 
+## Starters & Evolution
+
+Choose one of three starter Tokemons. Each has a unique design and evolves through 3 stages.
+
+| Tokemon | Type | Stage 1 | Stage 2 (Lv.5) | Stage 3 (Lv.15) |
+|---|---|---|---|---|
+| Flint | Fire | Flame wisp | Blaze (fire fox) | Inferno (fire drake) |
+| Pixel | Tech | Digital cube | Codec (robot head) | Daemon (cyber entity) |
+| Mochi | Nature | Round blob | Puff (cloud-cat) | Nimbus (storm spirit) |
+
+Your Tokemon earns XP from lines of code you write:
+
+- **Stage 1** (Lv.1-4): Starter form
+- **Stage 2** (Lv.5-14): First evolution at ~1,150 lines of code
+- **Stage 3** (Lv.15+): Final form at ~49,850 lines
+
+Post-Level 15 continues indefinitely -- bragging rights.
+
+### Expressions
+
+Each Tokemon has 5 expressions that change based on your session:
+
+- **Normal**: Default idle state
+- **Blink**: Cycles on idle (~every 3 seconds)
+- **Happy**: Triggers on evolution or milestones
+- **Stressed**: When rate limit is 60-84%
+- **Panic**: When rate limit hits 85%+
+
+Rendered with ANSI truecolor half-blocks. Works on iTerm2, Kitty, WezTerm, Ghostty, Windows Terminal, and any terminal with truecolor support.
+
+---
+
+## Personalities
+
+Three swappable personalities control your Tokemon's quips:
+
+**Sassy** (default for Flint) -- deadpan humor, roasts your spending
 ```
-  tokburn -- Today (2026-04-03)
-  ─────────────────────────────────────────
-  Total Tokens    | 54,023
-  Input           | 6,014
-  Output          | 48,009
-  Requests        | 207
-  Est. Cost       | $3.69
-
-  By Model:
-  claude-opus-4-6       |      6,014 in |     48,009 out | $3.69
+chill:    "slow day huh. saving money for once?"
+stressed: "we're in 'explain this to accounting' territory"
+panic:    "this is fine. everything is fine."
 ```
 
-### `tokburn week`
-
+**Hype** (default for Pixel) -- ALL CAPS energy, supportive but unhinged
 ```
-  tokburn -- Last 7 Days
-  ──────────────────────────────────────────────────────────
-  Date        |      Input |     Output |      Total |     Cost
-  ──────────────────────────────────────────────────────────
-  2026-03-28  |        105 |     53,309 |     53,414 |    $4.00
-  2026-03-29  |     18,630 |     44,644 |     63,274 |    $2.83
-  2026-03-30  |     80,327 |    221,339 |    301,666 |   $13.13
-  2026-03-31  |     74,282 |    437,760 |    512,042 |   $30.64
-  2026-04-01  |      4,898 |    160,145 |    165,043 |   $11.95
-  2026-04-02  |     25,771 |    259,054 |    284,825 |   $17.46
-  2026-04-03  |      6,015 |     48,088 |     54,103 |    $3.70
-  ──────────────────────────────────────────────────────────
-  Total       |    210,028 |  1,224,339 |  1,434,367 |   $83.70
+chill:    "LET'S GOOO we're just warming up!!"
+stressed: "THIS IS WHERE LEGENDS ARE MADE!!"
+panic:    "MAXIMUM OVERDRIVE!! NO BRAKES!!"
 ```
 
-### `tokburn scan`
-
+**Anxious** (default for Mochi) -- nervous, sweet, worried about tokens
 ```
-  Scanning Claude Code logs in: ~/.claude/projects
-
-  Found 17,405 usage entries
-  Input Tokens:  1,461,990
-  Output Tokens: 2,573,787
-  Total Tokens:  4,035,777
-  Est. Cost:     $186.43
+chill:    "this is nice... i like it quiet"
+stressed: "maybe we should... slow down?"
+panic:    "oh no oh no oh no..."
 ```
+
+Quips trigger on session events: rate limit crossings, line milestones, evolution. 100+ unique messages across all personalities.
 
 ---
 
@@ -189,9 +187,9 @@ See [tokburn-ext/README.md](./tokburn-ext/README.md) for details.
 
 ## How It Works
 
-**Status line** -- Claude Code sends session data (model, rate limits, cost, context usage) to a status line script via stdin on every update. tokburn's script parses this JSON and renders the formatted output. No proxy, no env vars, no interception. Just reads Claude Code's native data.
+**Status line** -- Claude Code sends session data (model, rate limits, cost, context usage) to a status line script via stdin on every update. tokburn's script parses this JSON, loads your companion state, renders the Tokemon sprite with the appropriate expression, builds the 6-line layout, updates XP, and outputs to stdout. No proxy, no env vars. Zero external dependencies for the renderer -- sub-5ms execution.
 
-**CLI commands** -- `today`, `week`, `scan`, and `export` read Claude Code's own JSONL session logs from `~/.claude/projects/`. No separate data store needed.
+**Companion state** -- Stored in `~/.tokburn/companion.json`. Tracks XP, level, evolution history, personality, and bubble triggers. Updated on every status line render when lines of code change.
 
 **Chrome extension** -- Patches `window.fetch` on claude.ai using a cloned response stream. Parses SSE events for token usage data. The original response is never touched. Everything is stored in `chrome.storage.local`.
 
@@ -202,7 +200,7 @@ See [tokburn-ext/README.md](./tokburn-ext/README.md) for details.
 **Your data never leaves your machine.**
 
 - The status line reads Claude Code's native JSON from stdin. No network requests.
-- CLI commands read local JSONL log files. No cloud, no API calls.
+- Companion state is a local JSON file. No cloud sync.
 - The Chrome extension makes zero external requests. Everything in `chrome.storage.local`.
 - No analytics. No telemetry. No accounts. No cloud.
 - All code is open source. Read every line: [tokburn-cli/](./tokburn-cli/) and [tokburn-ext/](./tokburn-ext/)
