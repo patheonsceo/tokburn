@@ -1,6 +1,6 @@
 {
   "name": "tokburn",
-  "version": "2.1.7",
+  "version": "2.1.8",
   "description": "Tokemons — your coding companion for Claude Code",
   "main": "cli.js",
   "bin": {

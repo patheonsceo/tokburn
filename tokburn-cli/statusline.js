@@ -243,11 +243,19 @@ function pickExpression(mood) {
   if (mood === 'panic') return 'panic';
   if (mood === 'stressed') return 'stress';
 
-  // Idle cycle: visible expression changes 4 out of 8 frames
-  // 8-second loop at 1fps (refreshInterval=1)
+  // Idle cycle: 20-second loop with natural varied rhythm
+  // Real creatures don't blink on a metronome — mix spacings
   const IDLE_CYCLE = [
-    'normal', 'normal', 'blink', 'blink',       // 0-3: idle then blink
-    'happy', 'normal', 'blink', 'normal',        // 4-7: happy flash, idle, blink
+    'normal', 'normal', 'normal', 'normal',   // 0-3:   4s opening rest
+    'blink',                                   // 4:     first blink
+    'normal', 'normal',                        // 5-6:   2s pause
+    'blink',                                   // 7:     quick double-blink
+    'normal', 'normal', 'normal', 'normal',   // 8-11:  4s rest
+    'normal', 'normal',                        // 12-13: 6s total long rest
+    'blink',                                   // 14:    isolated blink
+    'normal', 'normal',                        // 15-16: 2s pause
+    'happy',                                   // 17:    rare smile
+    'normal', 'normal',                        // 18-19: 2s recovery
   ];
   const second = Math.floor(Date.now() / 1000);
   return IDLE_CYCLE[second % IDLE_CYCLE.length];
