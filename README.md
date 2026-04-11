@@ -1,4 +1,4 @@
-<div align="left">
+<div align="center">
 
 ```
   ████████╗ ██████╗ ██╗  ██╗██████╗ ██╗   ██╗██████╗ ███╗   ██╗
@@ -9,13 +9,14 @@
      ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝
 ```
 
-**Choose your Tokemon. Write code. Watch it evolve.**
+**Choose your Tokemon. Write code. Watch it evolve. Track your Claude Code stats live.**
+
+A pixel art companion that lives in your Claude Code status line — it blinks, reacts to your token usage, roasts your spending habits, and evolves as you write more code. Also happens to be a full session dashboard.
 
 [![npm](https://img.shields.io/npm/v/tokburn?color=orange)](https://www.npmjs.com/package/tokburn)
 [![downloads](https://img.shields.io/npm/dm/tokburn)](https://www.npmjs.com/package/tokburn)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Node](https://img.shields.io/node/v/tokburn)](https://nodejs.org)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
 </div>
 
@@ -23,175 +24,157 @@
   <img src="docs/assets/starters.svg" alt="Three starter Tokemons: Flint (Fire), Pixel (Tech), Mochi (Nature)" />
 </p>
 
-Works with: **Claude Code**
-
----
-
-## The Problem
-
-Claude Pro/Max gives you a 5-hour usage window. You don't know how much you've used until you hit the wall mid-conversation and lose your entire context. Saying "hi" to Claude Code can cost 3% of your session. Refactoring a file? Maybe 15%. You have no idea until it's too late.
-
-**tokburn fixes this** -- and gives you a companion while you code.
-
----
-
-## Table of Contents
-
-- [For Claude Code users (CLI)](#for-claude-code-users) -- Tokemon companion, rich status line, zero config
-- [Starters & Evolution](#starters--evolution) -- 3 creatures, 3 stages each
-- [Personalities](#personalities) -- 3 swappable voices with 100+ quips
-- [Privacy](#privacy) -- everything stays on your machine
-
----
-
-## For Claude Code Users
-
-> `npm i -g tokburn && tokburn init` -- that's it. No proxy. No env vars. Nothing to break.
-
-tokburn adds a **Tokemon companion** to your Claude Code status line. Your creature lives alongside your session stats, reacts to token usage with mood-based expressions, and evolves as you write code.
-
-### Quick Start
+## Two lines. That's it.
 
 ```bash
 npm i -g tokburn
 tokburn init
 ```
 
-The wizard has 4 steps:
+Pick your plan. Choose your creature. Give it a personality. Done. Your Tokemon hatches and starts living in your status line immediately.
 
-1. Pick your plan (Pro / Max / API)
-2. Choose your starter Tokemon (Flint / Pixel / Mochi)
-3. Pick a personality (Sassy / Hype / Anxious)
-4. Configure status line (Recommended / Skip)
+---
 
-### Status Line
+## What you actually get
 
-6 lines: your Tokemon sprite on the left, session stats on the right.
+Your status line goes from this:
 
 ```
- [sprite]  │ Opus 4.6 (1M)·Max ━━━━━━────────────── 31%
- [sprite]  │ 5h ◆◆◆◇◇◇◇◇◇◇ 27% 3h25m→10:00 | 7d ◇◇◇◇◇◇◇◇◇◇ 2%
- [sprite]  │ +156 / -23 | ↓37K ↑152K | ⎇ main*
- [sprite]  │ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
- [sprite]  │ Lv.8 Blaze ▰▰▰▰▰▱▱▱ → Lv.9
-            │ 🧠 "slow day huh. saving money for once?"
+Opus 4.6 (1M context) | ctx 13%
 ```
 
-**Line 1:** Model, plan, context bar (━─), percentage
-**Line 2:** 5-hour rate limit (◆◇), 7-day rate limit (◆◇), reset times
-**Line 3:** Lines changed (+green/-red), tokens in/out, git branch
-**Line 4:** Divider
-**Line 5:** Level, Tokemon name, XP bar (▰▱), next level
-**Line 6:** Animated emoji + personality quip
+To this -- a 6-line dashboard with a living creature:
 
-Sprites animate with expression cycling (blink, mood reactions) at 1-second refresh. Color rule: white for facts, dim gray for structure, muted green/yellow/red for bars only.
+```
+ [Tokemon]  │ Opus 4.6 (1M context)·Max ━━━━━━────────────── 31%
+ [sprite ]  │ 5h ◆◆◆◇◇◇◇◇◇◇ 27% 3h25m→10:00 | 7d ◇◇◇◇◇◇◇◇◇◇ 2%
+ [sprite ]  │ +156 / -23 | ↓37K ↑152K | ⎇ main*
+ [sprite ]  │ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ [sprite ]  │ Lv.8 Blaze ▰▰▰▰▰▱▱▱ → Lv.9
+             │ 🧠 "you code like someone who hates money"
+```
 
-> **Note:** Sprite animation requires **Claude Code v2.1.97+** (run `claude update`). Older versions ignore `refreshInterval` and won't animate. Also make sure `CLAUDE_CODE_NO_FLICKER` is **not** set in your settings — it suppresses status line redraws.
+Everything updates live. The sprite animates. The quips change. The bars fill up. You never hit a rate limit wall blind again.
 
-### Skills
+### What each line tells you
+
+| Line | What's there | Why it matters |
+|---|---|---|
+| 1 | Model, plan, context bar + % | Know when context is getting full before you lose it |
+| 2 | 5-hour + 7-day rate limits with reset countdown | See exactly how close you are to hitting the wall |
+| 3 | Lines written, tokens in/out, git branch | Track what Claude is actually doing |
+| 4 | Divider | Your Tokemon lives below the stats |
+| 5 | Level, name, XP progress bar | Watch your companion grow as you code |
+| 6 | Animated emoji + personality quip | Your Tokemon's commentary on your session |
+
+---
+
+## Three starters. Three personalities. Your choice.
+
+### Flint -- the fire type
+<img src="docs/assets/evolution-flint.svg" alt="Flint → Blaze → Inferno" />
+
+Default personality: **Sassy.** Will roast your spending with a straight face.
+```
+"you code like someone who hates money"
+"your rate limit called. it filed a restraining order."
+"oh great. you again."
+```
+
+### Pixel -- the tech type
+<img src="docs/assets/evolution-pixel.svg" alt="Pixel → Codec → Daemon" />
+
+Default personality: **Hype.** Unhinged internet energy. Lives for big numbers.
+```
+"LEEROY JENKINS INTO THE RATE LIMIT!!"
+"THEY WILL WRITE LEGENDS ABOUT THIS SESSION"
+"chat is this real?? IS THIS REAL??"
+```
+
+### Mochi -- the nature type
+<img src="docs/assets/evolution-mochi.svg" alt="Mochi → Puff → Nimbus" />
+
+Default personality: **Anxious.** Sweet, nervous, tries to be brave. Fails adorably.
+```
+"EVERYTHING IS ON FIRE AND I AM SMALL..."
+"trying to be supportive but also AAAAAA..."
+"oh... oh wow... i'm actually kind of... pretty??"
+```
+
+You can swap personalities independently of your Tokemon -- give Flint the anxious voice, give Mochi the sassy one. 152 unique quips across all combinations.
+
+---
+
+## They evolve
+
+Your Tokemon earns XP from every line of code Claude writes. Across all projects, all sessions, always accumulating.
+
+| Stage | When | What happens |
+|---|---|---|
+| Stage 1 | Start | Your starter form |
+| **Stage 2** | **~5,000 lines** (Lv.5) | First evolution -- new sprite, new name, 30-second celebration |
+| **Stage 3** | **~50,000 lines** (Lv.15) | Final form -- you earned this over weeks of real work |
+| Post-15 | Forever | Levels keep climbing. Bragging rights. |
+
+When your Tokemon evolves, the status line lights up gold for 30 seconds:
+```
+★ Lv.5 Blaze — EVOLVED! ★
+```
+
+---
+
+## They're alive
+
+Your Tokemon isn't static. It has 5 expressions that change in real-time:
+
+<img src="docs/assets/expressions.svg" alt="Expressions: normal, blink, happy, stress, panic" />
+
+| Expression | When it shows |
+|---|---|
+| Normal | Default idle |
+| Blink | Every few seconds -- it's alive, not a sticker |
+| Happy | Evolution, level-ups, milestones |
+| Stressed | Rate limit at 60-84% -- your Tokemon feels the pressure |
+| Panic | Rate limit at 85%+ -- X eyes, wide mouth, sweat drop |
+
+The sprite animates at 1fps with expression cycling, emoji rotation, and quip changes. Your Tokemon reacts to what's actually happening in your session.
+
+> **Requires Claude Code v2.1.97+** (run `claude update`). Make sure `CLAUDE_CODE_NO_FLICKER` is **not** set in your settings.
+
+---
+
+## Skills
+
+Use these in any Claude Code session:
 
 | Skill | What it does |
 |---|---|
-| `/tokburn-check` | Session health, context analysis, optimization tips |
-| `/tokburn-plan` | Estimate token cost before starting a task |
-| `/tokemon-stats` | XP, level, evolution progress, lifetime stats |
-
-### Commands
-
-| Command | What it does |
-|---|---|
-| `tokburn init` | Interactive setup wizard |
-| `tokburn init --remove` | Uninstall tokburn from Claude Code |
+| `/tokburn-check` | Session health check -- context analysis, optimization tips |
+| `/tokburn-plan` | Estimate token cost before starting a big task |
+| `/tokemon-stats` | Your Tokemon's XP, level, evolution progress, lifetime stats |
 
 ---
 
-## Starters & Evolution
+## How it works (for the curious)
 
-Choose one of three starter Tokemons. Each has a unique design and evolves through 3 stages.
+**No proxy. No env vars. No interception. No cloud.**
 
-### Flint (Fire)
-<img src="docs/assets/evolution-flint.svg" alt="Flint → Blaze → Inferno" />
+Claude Code sends session data (model, rate limits, tokens, lines) to a status line script via stdin every second. tokburn parses the JSON, loads your companion state from `~/.tokburn/companion.json`, renders the sprite, builds the 6-line layout, updates XP, and writes to stdout. The whole thing runs in under 5ms with zero external dependencies.
 
-### Pixel (Tech)
-<img src="docs/assets/evolution-pixel.svg" alt="Pixel → Codec → Daemon" />
-
-### Mochi (Nature)
-<img src="docs/assets/evolution-mochi.svg" alt="Mochi → Puff → Nimbus" />
-
-Your Tokemon earns XP from lines of code you write:
-
-- **Stage 1** (Lv.1-4): Starter form
-- **Stage 2** (Lv.5-14): First evolution at ~5,000 lines of code
-- **Stage 3** (Lv.15+): Final form at ~50,000 lines
-
-Post-Level 15 continues indefinitely -- bragging rights.
-
-### Expressions
-
-Each Tokemon has 5 expressions that change based on your session:
-
-<img src="docs/assets/expressions.svg" alt="Blaze expressions: normal, blink, happy, stress, panic" />
-
-Expressions cycle automatically: blink on idle, stress at 60%+ rate limit, panic at 85%+, happy on evolution. Rendered with ANSI truecolor half-blocks. Works on iTerm2, Kitty, WezTerm, Ghostty, Windows Terminal, and any terminal with truecolor support.
-
----
-
-## Personalities
-
-Three swappable personalities control your Tokemon's quips:
-
-**Sassy** (default for Flint) -- deadpan humor, roasts your spending
-```
-chill:    "slow day huh. saving money for once?"
-stressed: "we're in 'explain this to accounting' territory"
-panic:    "this is fine. everything is fine."
-```
-
-**Hype** (default for Pixel) -- ALL CAPS energy, supportive but unhinged
-```
-chill:    "LET'S GOOO we're just warming up!!"
-stressed: "THIS IS WHERE LEGENDS ARE MADE!!"
-panic:    "MAXIMUM OVERDRIVE!! NO BRAKES!!"
-```
-
-**Anxious** (default for Mochi) -- nervous, sweet, worried about tokens
-```
-chill:    "this is nice... i like it quiet"
-stressed: "maybe we should... slow down?"
-panic:    "oh no oh no oh no..."
-```
-
-Quips trigger on session events: rate limit crossings, line milestones, evolution. 100+ unique messages across all personalities.
-
----
-
-## How It Works
-
-**Status line** -- Claude Code sends session data (model, rate limits, cost, context usage) to a status line script via stdin on every update. tokburn's script parses this JSON, loads your companion state, renders the Tokemon sprite with the appropriate expression, builds the 6-line layout, updates XP, and outputs to stdout. No proxy, no env vars. Zero external dependencies for the renderer -- sub-5ms execution.
-
-**Companion state** -- Stored in `~/.tokburn/companion.json`. Tracks XP, level, evolution history, personality, and bubble triggers. Updated on every status line render when lines of code change.
+XP accumulates across all projects and sessions. Your one Tokemon grows with everything you do in Claude Code.
 
 ---
 
 ## Privacy
 
-**Your data never leaves your machine.**
-
-- The status line reads Claude Code's native JSON from stdin. No network requests.
-- Companion state is a local JSON file. No cloud sync.
-- No analytics. No telemetry. No accounts. No cloud.
-- All code is open source. Read every line: [tokburn-cli/](./tokburn-cli/)
+Your data never leaves your machine. No network requests. No telemetry. No accounts. No cloud. Everything is a local JSON file. [Read every line of code.](./tokburn-cli/)
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup and guidelines.
-
-Quick version: fork it, branch it, PR it. Conventional commits (`feat:`, `fix:`, `chore:`). Run `npm test`.
+Fork it, branch it, PR it. Conventional commits (`feat:`, `fix:`, `chore:`). Run `npm test` in `tokburn-cli/`.
 
 ---
-
-## License
 
 [MIT](./LICENSE) -- Copyright 2026 tokburn contributors
