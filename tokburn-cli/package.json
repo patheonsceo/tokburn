@@ -1,17 +1,16 @@
 {
   "name": "tokburn",
-  "version": "1.0.0",
-  "description": "See exactly how fast you're burning tokens and money across Claude Code sessions",
+  "version": "2.0.0",
+  "description": "Tokemons — your coding companion for Claude Code",
   "main": "cli.js",
   "bin": {
     "tokburn": "cli.js"
   },
   "files": [
     "cli.js",
-    "proxy.js",
-    "tracker.js",
-    "store.js",
-    "display.js",
+    "companion.js",
+    "sprites.js",
+    "personality.js",
     "costs.js",
     "config.js",
     "init.js",
@@ -25,17 +24,18 @@
     "claude-code",
     "anthropic",
     "tokens",
-    "usage",
+    "tokemons",
+    "tokemon",
+    "pet",
+    "companion",
+    "evolution",
     "cli",
-    "proxy",
-    "token-tracker",
     "llm",
     "ai",
     "status-line"
   ],
   "scripts": {
-    "benchmark": "node test/benchmark.js",
-    "test": "node test/benchmark.js",
+    "test": "node test/companion.test.js",
     "prepublishOnly": "npm test"
   },
   "repository": {
@@ -47,7 +47,7 @@
   "bugs": {
     "url": "https://github.com/patheonsceo/tokburn/issues"
   },
-  "author": "pantheonsceo",
+  "author": "patheonsceo",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
