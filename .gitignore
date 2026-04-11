@@ -4,3 +4,4 @@ node_modules/
 .gstack/
 .claude/
 tokburn-ext/
+ccsessions/
