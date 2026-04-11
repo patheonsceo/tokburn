@@ -19,14 +19,9 @@
 
 </div>
 
-```
- [sprite]  │ Opus 4.6 (1M)·Max ━━━━━━────────────── 31%
- [sprite]  │ 5h ◆◆◆◇◇◇◇◇◇◇ 27% 3h25m→10:00 | 7d ◇◇◇◇◇◇◇◇◇◇ 2%
- [sprite]  │ +156 / -23 | ↓37K ↑152K | ⎇ main*
- [sprite]  │ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
- [sprite]  │ Lv.8 Blaze ▰▰▰▰▰▱▱▱ → Lv.9
-            │ 🧠 "slow day huh. saving money for once?"
-```
+<p align="center">
+  <img src="docs/assets/starters.svg" alt="Three starter Tokemons: Flint (Fire), Pixel (Tech), Mochi (Nature)" />
+</p>
 
 Works with: **Claude Code** | Codex, Cursor -- coming soon
 
@@ -113,11 +108,14 @@ Sprites animate with expression cycling (blink, mood reactions) at 1-second refr
 
 Choose one of three starter Tokemons. Each has a unique design and evolves through 3 stages.
 
-| Tokemon | Type | Stage 1 | Stage 2 (Lv.5) | Stage 3 (Lv.15) |
-|---|---|---|---|---|
-| Flint | Fire | Flame wisp | Blaze (fire fox) | Inferno (fire drake) |
-| Pixel | Tech | Digital cube | Codec (robot head) | Daemon (cyber entity) |
-| Mochi | Nature | Round blob | Puff (cloud-cat) | Nimbus (storm spirit) |
+### Flint (Fire)
+<img src="docs/assets/evolution-flint.svg" alt="Flint → Blaze → Inferno" />
+
+### Pixel (Tech)
+<img src="docs/assets/evolution-pixel.svg" alt="Pixel → Codec → Daemon" />
+
+### Mochi (Nature)
+<img src="docs/assets/evolution-mochi.svg" alt="Mochi → Puff → Nimbus" />
 
 Your Tokemon earns XP from lines of code you write:
 
@@ -131,13 +129,9 @@ Post-Level 15 continues indefinitely -- bragging rights.
 
 Each Tokemon has 5 expressions that change based on your session:
 
-- **Normal**: Default idle state
-- **Blink**: Cycles on idle (~every 3 seconds)
-- **Happy**: Triggers on evolution or milestones
-- **Stressed**: When rate limit is 60-84%
-- **Panic**: When rate limit hits 85%+
+<img src="docs/assets/expressions.svg" alt="Blaze expressions: normal, blink, happy, stress, panic" />
 
-Rendered with ANSI truecolor half-blocks. Works on iTerm2, Kitty, WezTerm, Ghostty, Windows Terminal, and any terminal with truecolor support.
+Expressions cycle automatically: blink on idle, stress at 60%+ rate limit, panic at 85%+, happy on evolution. Rendered with ANSI truecolor half-blocks. Works on iTerm2, Kitty, WezTerm, Ghostty, Windows Terminal, and any terminal with truecolor support.
 
 ---
 
