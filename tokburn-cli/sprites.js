@@ -496,12 +496,15 @@ function renderSprite(pixels) {
   // Use this to know the sprite's "occupied" columns for consistent padding.
   const height = padded.length;
   const rows = [];
+  // Near-invisible block for empty cells — prevents whitespace stripping
+  // and guarantees consistent character width across all rows
+  const EMPTY_CELL = fg(15, 15, 20) + '\u2580' + RESET;
   for (let y = 0; y < height; y += 2) {
     let row = '';
     for (let x = 0; x < width; x++) {
       const top = padded[y] ? padded[y][x] : null;
       const bot = (y + 1 < height && padded[y + 1]) ? padded[y + 1][x] : null;
-      if (!top && !bot) { row += ' '; }
+      if (!top && !bot) { row += EMPTY_CELL; }
       else if (top && !bot) { row += fg(top[0], top[1], top[2]) + '\u2580' + RESET; }
       else if (!top && bot) { row += fg(bot[0], bot[1], bot[2]) + '\u2584' + RESET; }
       else { row += bg(top[0], top[1], top[2]) + fg(bot[0], bot[1], bot[2]) + '\u2584' + RESET; }

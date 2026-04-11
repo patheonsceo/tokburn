@@ -391,24 +391,13 @@ if (require.main === module) {
   ];
 
   // Join sprite + divider + text side by side
+  // All sprite rows now use half-block characters (even empty cells),
+  // guaranteeing consistent width and preventing whitespace stripping
   const divider = DIM + ' \u2502 ' + RESET;
   const outputLines = [];
 
-  // Find the first sprite row with content to measure its visual width
-  // Then build a padding string that uses the same width for empty rows
-  let padStr = ' '.repeat(spriteWidth);
-  for (const sr of spriteRows) {
-    if (sr && sr.trim() !== '') {
-      // Count visible characters (strip ANSI codes)
-      const visWidth = sr.replace(/\x1b\[[0-9;]*m/g, '').length;
-      padStr = ' '.repeat(visWidth);
-      break;
-    }
-  }
-
   for (let i = 0; i < Math.max(spriteRows.length, textLines.length); i++) {
-    let spr = spriteRows[i];
-    if (!spr || spr.trim() === '') spr = padStr;
+    const spr = spriteRows[i] || '';
     const txt = textLines[i] || '';
     outputLines.push(spr + divider + txt);
   }
