@@ -1,4 +1,4 @@
-<div align="center">
+<div align="left">
 
 ```
   ████████╗ ██████╗ ██╗  ██╗██████╗ ██╗   ██╗██████╗ ███╗   ██╗
@@ -20,9 +20,7 @@ A pixel art companion that lives in your Claude Code status line — it blinks, 
 
 </div>
 
-<p align="center">
-  <img src="docs/assets/starters.svg" alt="Three starter Tokemons: Flint (Fire), Pixel (Tech), Mochi (Nature)" />
-</p>
+<img src="docs/assets/starters.svg" alt="Three starter Tokemons: Flint (Fire), Pixel (Tech), Mochi (Nature)" />
 
 ## Two lines. That's it.
 
@@ -31,11 +29,9 @@ npm i -g tokburn
 tokburn init
 ```
 
-Pick your plan. Choose your creature. Give it a personality. Done. Your Tokemon hatches and starts living in your status line immediately.
+Pick your plan. Choose your creature. Give it a personality. Your Tokemon hatches and starts living in your status line immediately.
 
-<p align="center">
-  <img src="screenshots/init.png" alt="tokburn init — Flint hatching" width="700" />
-</p>
+<img src="screenshots/init.png" alt="tokburn init — Flint hatching" width="700" />
 
 ---
 
@@ -49,17 +45,13 @@ Opus 4.6 (1M context) | ctx 13%
 
 To this:
 
-<p align="center">
-  <img src="screenshots/idle-statusline.png" alt="tokburn status line — Flint with session stats" />
-</p>
+<img src="screenshots/idle-statusline.png" alt="tokburn status line — Flint with session stats" />
 
 A living creature with animated expressions, rate limit bars, token stats, XP tracking, and personality quips. Everything updates live — you never hit a rate limit wall blind again.
 
 Here's what it looks like in a real session:
 
-<p align="center">
-  <img src="screenshots/full-session.png" alt="tokburn running in a full Claude Code session" width="700" />
-</p>
+<img src="screenshots/full-session.png" alt="tokburn running in a full Claude Code session" width="700" />
 
 ### What each line tells you
 
@@ -132,9 +124,7 @@ When your Tokemon evolves, the status line lights up gold for 30 seconds:
 
 Your Tokemon isn't static. It has 5 expressions that change in real-time:
 
-<p align="center">
-  <img src="screenshots/blinking-statusline.png" alt="Flint blinking in the status line" />
-</p>
+<img src="screenshots/blinking-statusline.png" alt="Flint blinking in the status line" />
 
 <img src="docs/assets/expressions.svg" alt="All expressions: normal, blink, happy, stress, panic" />
 
