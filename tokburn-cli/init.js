@@ -203,9 +203,12 @@ function uninstallTokburn() {
     } catch (_) {}
   }
 
-  // Remove companion config
-  const companionPath = path.join(os.homedir(), '.tokburn', 'companion.json');
+  // Remove companion identity + encoded progress
+  const tokburnDir = path.join(os.homedir(), '.tokburn');
+  const companionPath = path.join(tokburnDir, 'companion.json');
+  const progressPath = path.join(tokburnDir, 'progress.bin');
   if (fs.existsSync(companionPath)) fs.unlinkSync(companionPath);
+  if (fs.existsSync(progressPath)) fs.unlinkSync(progressPath);
 
   // Clean config
   const configFile = path.join(home, '.tokburn', 'config.json');

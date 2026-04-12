@@ -103,7 +103,8 @@ function limitBar(pct, width) {
 
 // XP: triangular blocks ▰▱ (lightest)
 function xpBar(pct, width) {
-  const filled = Math.round((pct / 100) * width);
+  const clamped = Math.max(0, Math.min(100, pct));
+  const filled = Math.min(width, Math.round((clamped / 100) * width));
   const empty = width - filled;
   return xpFill + '\u25B0'.repeat(filled) + RESET + barEmpty + '\u25B1'.repeat(empty) + RESET;
 }
@@ -211,8 +212,9 @@ function buildLine5(companionData, levelInfo, celebrating, leveledUp) {
   const stageName = companionData.stage_name || 'Unknown';
   const level = levelInfo.level;
   const nextLevel = level + 1;
-  const xpPct = levelInfo.xpForNext > 0
-    ? Math.round((levelInfo.xpIntoLevel / levelInfo.xpForNext) * 100)
+  const totalLevelCost = levelInfo.xpIntoLevel + levelInfo.xpForNext;
+  const xpPct = totalLevelCost > 0
+    ? Math.round((levelInfo.xpIntoLevel / totalLevelCost) * 100)
     : 100;
 
   if (celebrating) {

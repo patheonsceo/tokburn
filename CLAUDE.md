@@ -38,13 +38,15 @@ tokburn/
 └── ccsessions/            # GITIGNORED — dated session logs, local only
 ```
 
-**Runtime state:** `~/.tokburn/companion.json` (XP, level, personality, evolution history, timestamps)
+**Runtime state:**
+- `~/.tokburn/companion.json` — identity (tokemon type, personality, hatch date)
+- `~/.tokburn/progress.bin` — encoded blob (XP, level, evolutions, session state) — tamper-protected, never touched by init
 
 ## Critical platform requirements
 
 1. **Claude Code >= v2.1.97** — `refreshInterval` was added in this version. Older versions silently ignore it and the sprite won't animate during idle. Document this in README, mention `claude update` if users report static sprites.
 
-2. **`CLAUDE_CODE_NO_FLICKER` must NOT be set** — this env var enables alternate-screen rendering which suppresses status line redraws. Kills animation even when the script runs.
+2. **`CLAUDE_CODE_NO_FLICKER` is compatible** — this env var enables alternate-screen rendering which reduces flicker. Tested working with tokburn as of Claude Code v2.1.97+. Can be set via `env` in `~/.claude/settings.json`.
 
 3. **Status line script is invoked by Claude Code** — runs on every message + every second during idle (when `refreshInterval: 1`). Must complete in <100ms or Claude Code may kill it.
 
