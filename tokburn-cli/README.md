@@ -4,6 +4,8 @@
 
 A pixel art companion that lives in your Claude Code status line — it blinks, reacts to your token usage, roasts your spending habits, and evolves as you write more code. Also happens to be a full session dashboard.
 
+![Tokemon live demo](https://raw.githubusercontent.com/patheonsceo/tokburn/main/screenshots/tokemon-demo.gif)
+
 ![Three starter Tokemons](https://raw.githubusercontent.com/patheonsceo/tokburn/main/docs/assets/starters.svg)
 
 ## Two lines. That's it.

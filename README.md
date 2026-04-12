@@ -20,6 +20,8 @@ A pixel art companion that lives in your Claude Code status line — it blinks, 
 
 </div>
 
+<img src="screenshots/tokemon-demo.gif" alt="Tokemon live in Claude Code — animated status line" />
+
 <img src="docs/assets/starters.svg" alt="Three starter Tokemons: Flint (Fire), Pixel (Tech), Mochi (Nature)" />
 
 ## Two lines. That's it.
