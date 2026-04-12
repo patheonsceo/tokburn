@@ -117,7 +117,34 @@ echo '{"model":{"display_name":"Opus 4.6 (1M context)"},"context_window":{"used_
 3. `git add -A && git commit -m "..."`
 4. `git push origin main`
 5. `cd tokburn-cli && npm publish`
-6. Optionally tag + GitHub release: `git tag vX.Y.Z && git push --tags && gh release create vX.Y.Z --title "..." --notes "..."`
+6. Tag and push: `git tag vX.Y.Z && git push --tags`
+7. Create GitHub release (see below)
+
+**GitHub release command** (gh CLI is at `/tmp/gh_2.74.0_linux_amd64/bin/gh`):
+
+```bash
+export PATH="/tmp/gh_2.74.0_linux_amd64/bin:$PATH"
+gh release create vX.Y.Z --repo patheonsceo/tokburn --title "tokburn vX.Y.Z — Title" --notes "$(cat <<'EOF'
+## What's new
+
+- bullet points here
+
+### Install / Update
+
+\`\`\`bash
+npm i -g tokburn
+\`\`\`
+EOF
+)"
+```
+
+If the tag already exists on remote, skip `git tag` + `git push --tags` and just create the release against the existing tag. If `gh` is not found, install it first:
+
+```bash
+cd /tmp && curl -sLO "https://github.com/cli/cli/releases/download/v2.74.0/gh_2.74.0_linux_amd64.tar.gz" && tar xzf gh_2.74.0_linux_amd64.tar.gz
+```
+
+If not authenticated: `gh auth login` (choose SSH, then web browser or token).
 
 Author is `patheonsceo` (note: NOT `pantheonsceo` — that's the typo we fixed in 2.0.0).
 
