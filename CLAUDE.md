@@ -4,7 +4,7 @@
 
 **tokburn** is an npm CLI that adds a Tokemon pixel-art companion + session dashboard to the Claude Code status line. A 6-line animated display showing model/context, rate limits, tokens, git branch, XP bar, and personality quips — with a sprite that blinks, reacts to token usage, and evolves as you write code.
 
-Current version: **2.1.8** (published to npm)
+Current version: **2.2.0** (published to npm)
 
 ## Tech stack
 
@@ -60,7 +60,7 @@ tokburn/
 
 5. **Claude Code's `display_name` may already include context size.** E.g. `"Opus 4.6 (1M context)"`. Don't blindly append size again or you get `(1M context) (1M)`. Regex check before appending.
 
-6. **Sprite width changes between stages.** Stage 1 = 9 cols, Stage 2/3 = 11 cols. `spriteWidth = spritePixels[0].length` must be computed per-render, never hardcoded.
+6. **All sprites are 11 cols wide.** `spriteWidth = spritePixels[0].length` is computed per-render, never hardcoded.
 
 ## Animation loop
 
