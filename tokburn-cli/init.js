@@ -160,6 +160,11 @@ function configureStatusLine(selectedModules, elements) {
   // Point to the npm-installed statusline.js (needs sibling modules)
   const scriptPath = path.join(__dirname, 'statusline.js');
 
+  // Build command with explicit node binary — Windows has no shebang support,
+  // so a bare .js path fails silently. Using process.execPath works everywhere.
+  const nodeExec = process.execPath;
+  const command = '"' + nodeExec + '" "' + scriptPath + '"';
+
   // Remove stale standalone copy if it exists
   const oldScript = path.join(claudeDir, 'tokburn-statusline.js');
   if (fs.existsSync(oldScript)) {
@@ -171,7 +176,7 @@ function configureStatusLine(selectedModules, elements) {
     try { settings = JSON.parse(fs.readFileSync(claudeSettings, 'utf8')); } catch (_) {}
   }
 
-  settings.statusLine = { type: 'command', command: scriptPath, refreshInterval: 1 };
+  settings.statusLine = { type: 'command', command: command, refreshInterval: 1 };
 
   if (!fs.existsSync(claudeDir)) {
     fs.mkdirSync(claudeDir, { recursive: true });
