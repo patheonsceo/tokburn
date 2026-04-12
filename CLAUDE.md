@@ -4,7 +4,7 @@
 
 **tokburn** is an npm CLI that adds a Tokemon pixel-art companion + session dashboard to the Claude Code status line. A 6-line animated display showing model/context, rate limits, tokens, git branch, XP bar, and personality quips — with a sprite that blinks, reacts to token usage, and evolves as you write code.
 
-Current version: **2.2.0** (published to npm)
+Current version: **2.2.1** (published to npm)
 
 ## Tech stack
 
@@ -112,15 +112,48 @@ npm test                    # 24 unit tests for companion.js
 echo '{"model":{"display_name":"Opus 4.6 (1M context)"},"context_window":{"used_percentage":31,"context_window_size":1000000},"rate_limits":{"five_hour":{"used_percentage":27}},"cost":{"total_lines_added":156,"total_lines_removed":23},"workspace":{"current_dir":"/tmp"}}' | node statusline.js
 ```
 
-## Publishing workflow
+## Commit rules (MANDATORY)
+
+**Format:** conventional commits only. No exceptions.
+```
+feat: add new feature
+fix: fix a bug
+docs: documentation only
+chore: maintenance, cleanup, deps
+refactor: code change that doesn't fix or add
+```
+
+**NEVER add Co-Authored-By trailers.** No `Co-Authored-By: Claude ...` lines. The user does not want them.
+
+**Keep it short.** One line, lowercase after the tag, describe WHAT changed. E.g.:
+- `feat: add level-up celebration with 5s golden flash`
+- `fix: use explicit node binary for Windows compatibility`
+- `docs: update README screenshots with v2.2.0 sprites`
+
+## Version bumping (MANDATORY)
+
+**ALWAYS bump `tokburn-cli/package.json` version before committing publishable changes.**
+
+Rules:
+- **Patch** (2.2.1 → 2.2.2): bug fixes, small tweaks, doc updates that ship to npm
+- **Minor** (2.2.x → 2.3.0): new features, balance changes, personality rewrites
+- **Major** (2.x → 3.0.0): breaking changes (new init flow, removed commands, etc.)
+
+**Check the current version FIRST:** `grep '"version"' tokburn-cli/package.json`
+Then bump it in the same commit as the code changes.
+
+## Publishing workflow (MANDATORY — follow every step in order)
 
 1. Bump `tokburn-cli/package.json` version
-2. `cd tokburn-cli && npm test`
-3. `git add -A && git commit -m "..."`
-4. `git push origin main`
-5. `cd tokburn-cli && npm publish`
-6. Tag and push: `git tag vX.Y.Z && git push --tags`
-7. Create GitHub release (see below)
+2. `cd tokburn-cli && npm test` — must pass before committing
+3. `git add <specific files>` — stage only relevant files, NOT `git add -A`
+4. `git commit -m "feat/fix/docs: description"` — conventional commit, no co-authored-by
+5. `git push origin main`
+6. `cd tokburn-cli && npm publish`
+7. Tag and push: `git tag vX.Y.Z && git push --tags`
+8. Create GitHub release (see below)
+
+**Do NOT skip steps.** Do NOT commit without bumping version. Do NOT push without testing.
 
 **GitHub release command** (gh CLI is at `/tmp/gh_2.74.0_linux_amd64/bin/gh`):
 
