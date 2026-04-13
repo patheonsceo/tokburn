@@ -17,6 +17,7 @@ A pixel art companion that lives in your Claude Code status line — it blinks, 
 [![downloads](https://img.shields.io/npm/dm/tokburn)](https://www.npmjs.com/package/tokburn)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Node](https://img.shields.io/node/v/tokburn)](https://nodejs.org)
+[![Website](https://img.shields.io/badge/website-tokburn-green)](https://tokemon-tokburn.vercel.app)
 
 </div>
 
