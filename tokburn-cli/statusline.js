@@ -306,6 +306,13 @@ if (require.main === module) {
   const currentLines = (data.cost && data.cost.total_lines_added) || 0;
   const sessionId = (data.session && data.session.id) || (data.conversation_id) || 'unknown';
 
+  // Detect new session: total_lines_added resets to 0 in new sessions.
+  // When sessionId is unavailable ("unknown"), this is the only signal.
+  if (comp.last_session_id && currentLines < comp.last_lines_snapshot) {
+    comp.last_lines_snapshot = 0;
+    comp.triggered_this_session = [];
+  }
+
   // First ever run — establish baseline, don't grant retroactive XP
   let xpGained = 0;
   if (!comp.last_session_id) {
